@@ -179,7 +179,7 @@ if __name__=="__main__":
     # Set Up Google Drive API
     # drive = authenticate("config.json")
     gauth = GoogleAuth()
-    with open("config.json") as config_file:
+    with open("static/config.json") as config_file:
         config = json.load(config_file)
     google_drive_credentials_path = config['google_drive_credentials']
     google_drive_oauth_path = config['google_drive_oauth']
@@ -188,7 +188,7 @@ if __name__=="__main__":
     drive = GoogleDrive(gauth)
 
     # Get Bangladesh outline
-    bangladesh_shape = generate_country_outline('bangladesh-outline_68.geojson')
+    bangladesh_shape = generate_country_outline('static/bangladesh-outline_68.geojson')
     bangladesh_bounding_box = box(*bangladesh_shape.bounds)
     bangladesh_bounding_box_ee = ee.Geometry.BBox(*bangladesh_shape.bounds)
 
@@ -225,7 +225,8 @@ if __name__=="__main__":
     time.sleep(10)
 
     # FLOOD EVENTS
-    refined_flood_events = generate_flood_events('Bangladesh_Flood_Events.xlsx')
+    refined_flood_events = generate_flood_events('static/Bangladesh_Flood_Events.xlsx')
+    store_flood_dates(refined_flood_events) #Save list of flood dates under consideration
  
     # Submit jobs, process pool to avoid memory issues
     with ProcessPoolExecutor(max_workers=max_workers) as executor:
@@ -243,7 +244,7 @@ if __name__=="__main__":
     print("Running non flood events....")
     num_dates_to_generate = 100
     safety_window = 10
-    random_dates = generate_random_non_flood_dates('Bangladesh_Flood_Events.xlsx', num_dates_to_generate, safety_window, "config.json")
+    random_dates = generate_random_non_flood_dates('static/Bangladesh_Flood_Events.xlsx', num_dates_to_generate, safety_window, "static/config.json")
     # random_dates = pd.read_csv("to_rerun.csv", header=None)
     # random_dates = list(random_dates.values.flatten())
     # random_dates = [pd.Timestamp(year=2000, month=9, day=18)]

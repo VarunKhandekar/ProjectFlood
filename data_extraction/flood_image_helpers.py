@@ -1,4 +1,5 @@
 import pandas as pd
+import json
 
 def generate_overlapping_events(file_path: str) -> pd.DataFrame:
     """
@@ -89,3 +90,27 @@ def generate_flood_events(file_path: str) -> dict:
             overlapping_dict[earliest_event_date] = list(set(overlapping_dict[earliest_event_date]))
     
     return overlapping_dict
+
+def store_flood_dates(events_dict: dict, config_file: str):
+    """
+    Store flood event dates into an Excel file.
+
+    Args:
+        events_dict (dict): A dictionary where keys are flood event dates.
+        config_file (str): Path to the configuration file containing the target path for storing the flood dates.
+
+    This function performs the following steps:
+        1. Extracts the flood event dates from the keys of the `events_dict` dictionary.
+        2. Creates a pandas DataFrame with the extracted dates.
+        3. Reads the target path for storing the flood dates from the configuration file.
+        4. Saves the DataFrame to an Excel file at the specified target path.
+
+    Note:
+        The configuration file should contain a key "final_flood_dates" specifying the target path for the Excel file.
+    """
+    dates = [i for i in events_dict.keys()]
+    df = pd.DataFrame(dates, columns=["Dates"])
+    with open(config_file) as config_file:
+        config = json.load(config_file)
+    target_path = config["final_flood_dates"]
+    df.to_excel(target_path, index=False)

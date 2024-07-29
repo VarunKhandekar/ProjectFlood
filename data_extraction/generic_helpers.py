@@ -2,6 +2,8 @@ import json
 import pandas as pd
 import numpy as np
 import os
+import re
+import rasterio
 from datetime import timedelta
 from shapely.geometry import Polygon
 from PIL import Image, ImageOps
@@ -91,7 +93,7 @@ def generate_random_non_flood_dates(file_path: str, num_dates: int, safety_windo
     with open(config_file) as config_file:
         config = json.load(config_file)
     existing_image_file_path = config['non_flood_file_path']
-    current_dates = [pd.to_datetime(i[-12:-4], format=r'%Y%m%d') for i in os.listdir(existing_image_file_path)]
+    current_dates = [pd.to_datetime(re.search(r'\d{8}', i).group(0), format=r'%Y%m%d') for i in os.listdir(existing_image_file_path)]
 
     random_dates = []
     while len(random_dates) <= num_dates:
@@ -140,13 +142,21 @@ def pad_to_square(image: Image, desired_resolution: int) -> Image:
     return padded_image
 
 def resize_and_pad_with_PIL(file_path: str, config_file: str, desired_resolution: int, target_file_path: str):
-    with open("config.json") as config_file:
+    with open(config_file) as config_file:
         config = json.load(config_file)
-    target_image = Image.open(config['rainfall_reprojection_master_low_res'])
+    target_image_file_path = config[f'rainfall_reprojection_master_{desired_resolution}']
+    target_image = Image.open(target_image_file_path)
     new_width, new_height = target_image.width, target_image.height
 
-    with Image.open(file_path) as img:
+    try:
+        with Image.open(file_path) as img:
+            resized_img = img.resize((new_width, new_height))
+            resized_and_padded_img = pad_to_square(resized_img, desired_resolution)
+            resized_and_padded_img.save(target_file_path)
+    except:
+        img = rasterio.open(file_path)
+        img = img.read(1)
+        img = Image.fromarray(img)
         resized_img = img.resize((new_width, new_height))
         resized_and_padded_img = pad_to_square(resized_img, desired_resolution)
         resized_and_padded_img.save(target_file_path)
-
