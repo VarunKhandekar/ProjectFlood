@@ -7,7 +7,18 @@ import shutil
 from typing import Literal
 
 
-def split_files(files, val_ratio, test_ratio):
+def split_files(files: list, val_ratio: float, test_ratio: float) -> tuple:
+    """
+    Split a list of files into training, validation, and test sets.
+
+    Args:
+        files (list): List of files to be split.
+        val_ratio (float): Ratio of files to be used for validation.
+        test_ratio (float): Ratio of files to be used for testing.
+
+    Returns:
+        tuple: Three lists representing the training, validation, and test sets.
+    """
     random.shuffle(files)
     
     total_files = len(files)
@@ -22,7 +33,20 @@ def split_files(files, val_ratio, test_ratio):
     return train_files, val_files, test_files
 
 
-def split_training_test(config_file, resolution, flood_dates_file, val_ratio, test_ratio):
+def split_training_test(config_file: str, resolution: int, flood_dates_file: str, val_ratio: float, test_ratio: float) -> tuple:
+    """
+    Split files into training, validation, and test sets based on flood and non-flood dates.
+
+    Args:
+        config_file (str): Path to the configuration file.
+        resolution (int): Desired resolution of the images.
+        flood_dates_file (str): Path to the file containing flood dates.
+        val_ratio (float): Ratio of files to be used for validation.
+        test_ratio (float): Ratio of files to be used for testing.
+
+    Returns:
+        tuple: Three lists representing the training, validation, and test sets.
+    """
     assert val_ratio + test_ratio <= 0.5, "Validation and test ratios combined should not exceed 0.5"  
 
     with open("static/config.json") as config_file:
@@ -53,7 +77,19 @@ def split_training_test(config_file, resolution, flood_dates_file, val_ratio, te
 
     return train_files, val_files, test_files
 
-def save_files(config_file, resolution, files, dataset_type: Literal['training', 'validation', 'test']):
+def save_files(config_file: str, resolution: int, files: list, dataset_type: Literal['training', 'validation', 'test']):
+    """
+    Save files to their respective directories for training, validation, or testing.
+
+    Args:
+        config_file (str): Path to the configuration file.
+        resolution (int): Desired resolution of the images.
+        files (list): List of files to be saved.
+        dataset_type (str): Type of dataset to save the files to. Must be one of 'training', 'validation', or 'test'.
+
+    Raises:
+        ValueError: If an invalid dataset type is provided.
+    """
     dataset_types = ['training', 'validation', 'test']
     if dataset_type not in dataset_types:
         raise ValueError(f"Invalid value provided. Choose from {dataset_types}")
@@ -83,6 +119,7 @@ def save_files(config_file, resolution, files, dataset_type: Literal['training',
 
 
 if __name__ == "__main__":
+    # 60-20-20 SPLIT
     random.seed(42)
     resolution = 256
     test_ratio = 0.2
