@@ -63,4 +63,9 @@ class Compose(object):
         for t in self.transforms:
             image, label = t(image, label)
         return image, label
-
+    
+train_transform = Compose([
+    RandomHorizontalFlip(),
+    RandomVerticalFlip(),
+    RandomRotation(180),
+])
