@@ -7,26 +7,35 @@ from PIL import Image
 class RandomHorizontalFlip(object):
     def __call__(self, images, label):
         if random.random() > 0.5:
-            image = F.horizontal_flip(image)
             label = F.horizontal_flip(label)
-        return image, label
+            transformed_images = {}
+            for key, value in images.items():
+                flipped_images = [F.horizontal_flip(image) for image in value]
+                transformed_images[key] = flipped_images
+        return transformed_images, label
 
 class RandomVerticalFlip(object):
     def __call__(self, images, label):
         if random.random() > 0.5:
-            image = F.vertical_flip(image)
             label = F.vertical_flip(label)
-        return image, label
+            transformed_images = {}
+            for key, value in images.items():
+                flipped_images = [F.vertical_flip(image) for image in value]
+                transformed_images[key] = flipped_images
+        return flipped_images, label
 
 class RandomRotation(object):
     def __init__(self, degrees):
         self.degrees = degrees
 
     def __call__(self, images, label):
-        angle = random.randrange(-self.degrees, self.degrees+1, 90)
-        image = F.rotate(image, angle)
+        angle = random.randrange(-self.degrees, self.degrees, 90)
         label = F.rotate(label, angle)
-        return images, label
+        transformed_images = {}
+        for key, value in images.items():
+            flipped_images = [F.rotate(image) for image in value]
+            transformed_images[key] = flipped_images
+        return transformed_images, label
 
 
 # class RandomResizedCrop(object):
