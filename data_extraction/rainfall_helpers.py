@@ -39,7 +39,7 @@ def generate_files_of_interest(drive: GoogleDrive,
     Returns:
         list: A list of files from Google Drive that match the generated file names.
     """
-    with open("config.json") as config_file:
+    with open(config) as config_file:
         config = json.load(config_file)
     folder_id = config[folder]
 
@@ -73,7 +73,7 @@ def reproject_and_upsample_rasterio(input_file: str,
         src_transform = src.transform
         data = src.read()
         src_crs = src.crs
-        with open("config.json") as config_file:
+        with open(config_file) as config_file:
             config = json.load(config_file)
         master_file = config['rainfall_reprojection_master']
         # Open target file to get target dimensions and transform
@@ -137,7 +137,7 @@ def reproject_and_upsample_PIL(input_file: str,
         5. Saves the padded image to the specified output file with TIFF deflate compression.
     """
     lowres_image = Image.open(input_file)
-    with open("config.json") as config_file:
+    with open(config_file) as config_file:
         config = json.load(config_file)
     target_image = Image.open(config['rainfall_reprojection_master_low_res'])
 
