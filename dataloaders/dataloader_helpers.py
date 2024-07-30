@@ -1,4 +1,5 @@
-import imageio
+import imageio.v2 as imageio
+import torch
 import pandas as pd
 import os
 from data_extraction.generic_helpers import *
@@ -43,22 +44,25 @@ def generate_label_images(label_name, soil_moisture_dir, topology_dir, rainfall_
     date_str = label_name[15:-4]
     date = pd.to_datetime(date_str, format=r"%Y%m%d")
 
-    #Topology - standardisation
+    #Topology - standardisation, float32 at end
     topology_name = os.path.join(topology_dir, "BangladeshTopology.tif")
     # images_dict['topology'] = imageio.imread(topology_name).toTensor()
     topology_image = imageio.imread(topology_name)
+    topology_image = topology_image.astype(np.float32)
     topology_image = standardise_locally(topology_image)
     images_dict['topology'] = [topology_image]
 
-    #Soil Moisture - pseudo min-max scaling
+    #Soil Moisture - pseudo min-max scaling, float32 at the end
     soil_moisture_date = date - pd.Timedelta(days=1)
     soil_moisture_name = os.path.join(soil_moisture_dir, 
                                         "BangladeshSoilMoisture" + soil_moisture_date.strftime(r"%Y%m%d") + ".tif")
     soil_moisture_image = imageio.imread(soil_moisture_name)
+    soil_moisture_image = soil_moisture_image.astype(np.float32) #coerce to float32 just in case
+    print(soil_moisture_image.dtype)
     soil_moisture_image = np.clip(soil_moisture_image, 0, 1) # pseudo-mix-max-scaling!
     images_dict['soil_moisture'] = [soil_moisture_image]
 
-    #Rainfall - log min-max scaling
+    #Rainfall - log min-max scaling, float32 at the end
     rainfall_dates = generate_timestamps(date, preceding_rainfall_days, forecast_rainfall_days, "3h")
     preceding = []
     forecast = []
@@ -77,3 +81,11 @@ def generate_label_images(label_name, soil_moisture_dir, topology_dir, rainfall_
     images_dict['forecast'] = forecast
     
     return images_dict
+
+def prepare_tensors(tensor_list):
+    if len(tensor_list) > 1:
+        # Stack if there's more than one tensor
+        return torch.stack(tensor_list, dim=0)
+    else:
+        # Add a dimension to make it [1, X, Y] if there's only one tensor
+        return tensor_list[0].unsqueeze(0)
