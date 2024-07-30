@@ -1,28 +1,30 @@
 import random
 import torchvision.transforms.v2.functional as F
-from torchvision.transforms import ToTensor
-from torchvision.transforms import v2
-from PIL import Image
 
 class RandomHorizontalFlip(object):
     def __call__(self, images, label):
+        transformed_images = {}
         if random.random() > 0.5:
-            label = F.horizontal_flip(label)
-            transformed_images = {}
+            transformed_label = F.horizontal_flip(label)
             for key, value in images.items():
-                flipped_images = [F.horizontal_flip(image) for image in value]
-                transformed_images[key] = flipped_images
-        return transformed_images, label
+                edited_images = [F.horizontal_flip(image) for image in value]
+                transformed_images[key] = edited_images
+            return transformed_images, transformed_label
+        return images, label      
+
 
 class RandomVerticalFlip(object):
     def __call__(self, images, label):
+        transformed_images = {}
         if random.random() > 0.5:
-            label = F.vertical_flip(label)
-            transformed_images = {}
+            transformed_label = F.vertical_flip(label)
             for key, value in images.items():
-                flipped_images = [F.vertical_flip(image) for image in value]
-                transformed_images[key] = flipped_images
-        return flipped_images, label
+                edited_images = [F.horizontal_flip(image) for image in value]
+                transformed_images[key] = edited_images
+            return transformed_images, transformed_label
+        return images, label
+        
+
 
 class RandomRotation(object):
     def __init__(self, degrees):
@@ -30,12 +32,12 @@ class RandomRotation(object):
 
     def __call__(self, images, label):
         angle = random.randrange(-self.degrees, self.degrees, 90)
-        label = F.rotate(label, angle)
+        transformed_label = F.rotate(label, angle)
         transformed_images = {}
         for key, value in images.items():
-            flipped_images = [F.rotate(image) for image in value]
-            transformed_images[key] = flipped_images
-        return transformed_images, label
+            edited_images = [F.rotate(image, angle) for image in value]
+            transformed_images[key] = edited_images
+        return transformed_images, transformed_label
 
 
 # class RandomResizedCrop(object):
@@ -59,10 +61,10 @@ class Compose(object):
     def __init__(self, transforms):
         self.transforms = transforms
 
-    def __call__(self, image, label):
+    def __call__(self, images, label):
         for t in self.transforms:
-            image, label = t(image, label)
-        return image, label
+            images, label = t(images, label)
+        return images, label
     
 train_transform = Compose([
     RandomHorizontalFlip(),

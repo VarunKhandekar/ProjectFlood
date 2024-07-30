@@ -1,4 +1,4 @@
-import imageio
+import imageio.v2 as imageio
 import torch
 import os
 from torch.utils.data import Dataset
@@ -40,15 +40,23 @@ class FloodPredictionDataset(Dataset):
                                        self.rainfall_min, 
                                        self.rainfall_max, 
                                        self.preceding_rainfall_days)
+        
+        # Convert images to tensors
+        label_tensor = torch.tensor(label)
+        image_tensors = {}
+        for key, value in images.items():
+            tensor_images = [torch.tensor(image, dtype=torch.float32) for image in value]
+            image_tensors[key] = tensor_images
+        
         if self.transform:
-            images, label = self.transform(images, label)
+            image_tensors, label_tensor = self.transform(image_tensors, label_tensor)
         
-        image_tensor = torch.stack(torch.stack(images['preceding']), 
-                                   torch.stack(images['forecast']), 
-                                   images['topology'], 
-                                   images['soil_moisture'])
-        
-        label_tensor = label.toTensor()
+        preceding_stacked = prepare_tensors(image_tensors['preceding'])
+        forecast_stacked = prepare_tensors(image_tensors['forecast'])
+        soil_moisture_stacked = prepare_tensors(image_tensors['soil_moisture'])
+        topology_stacked = prepare_tensors(image_tensors['topology'])
+
+        image_tensor = torch.cat([preceding_stacked, forecast_stacked, topology_stacked, soil_moisture_stacked], dim=0)
         
         return image_tensor, label_tensor
     
