@@ -58,7 +58,6 @@ def generate_label_images(label_name, soil_moisture_dir, topology_dir, rainfall_
                                         "BangladeshSoilMoisture" + soil_moisture_date.strftime(r"%Y%m%d") + ".tif")
     soil_moisture_image = imageio.imread(soil_moisture_name)
     soil_moisture_image = soil_moisture_image.astype(np.float32) #coerce to float32 just in case
-    print(soil_moisture_image.dtype)
     soil_moisture_image = np.clip(soil_moisture_image, 0, 1) # pseudo-mix-max-scaling!
     images_dict['soil_moisture'] = [soil_moisture_image]
 
