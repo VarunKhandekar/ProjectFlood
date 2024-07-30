@@ -166,4 +166,4 @@ data/
 static/
 other/
 archive/
-.vscode/
+data_extraction/ee_test.ipynb
