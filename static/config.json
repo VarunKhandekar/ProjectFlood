@@ -1,0 +1,37 @@
+{
+    "cleanup": "./remove_zone_identifiers.sh",
+    
+    "google_drive_credentials": "static/google_drive_credentials.json",
+    "earth_engine_project": "ee-varunkhandekar",
+    "google_drive_oauth": "static/google_drive_oauth.json",
+
+    "MSWEP_Past_3hr_folder_id": "1DVR90Ud1C444bTOPeENX-3I7tgqPLnao",
+    "bangladesh_rainfall_folder_id": "1wmoF_KpcYMX63hr9M4EEG2J4gipNB9KD",
+    "soil_moisture_folder_id": "1OgvtZ6C11DutQnoysIN3AIIlhh5FEryG",
+
+    "rainfall_reprojection_master_high_res": "static/BangladeshFlood_MASTER_2044_2573.tif",
+    "rainfall_reprojection_master_256": "static/BangladeshFlood_MASTER_203_256.tif",
+    "final_flood_dates": "static/final_flood_dates.xlsx",
+
+    "non_flood_file_path_2044_2573": "data/BangladeshNonFloodImages_2044_2573",
+    "flood_file_path_2044_2573": "data/BangladeshFloodImages_2044_2573",
+    "soil_moisture_flood_path_2044_2573": "data/BangladeshSoilMoisture_2044_2573",
+    "soil_moisture_non_flood_path_2044_2573": "data/BangladeshSoilMoistureNonFlood_2044_2573",
+    "topology_path_2044_2573": "data/Topology_2044_2573",
+
+    "rainfall_path_archive": "data/Archive/BangladeshRainfall",
+    
+    "non_flood_file_path": "data/BangladeshNonFloodImages",
+    "flood_file_path": "data/BangladeshFloodImages",
+    "water_image_path": "data/BangladeshWaterImages",
+    "rainfall_path": "data/BangladeshRainfall",
+    "soil_moisture_flood_path": "data/BangladeshSoilMoisture",
+    "soil_moisture_non_flood_path": "data/BangladeshSoilMoistureNonFlood",
+    "soil_moisture_combo_path": "data/BangladeshSoilMoistureCombo",
+    "topology_path": "data/Topology",
+
+    "training_labels_path": "data/BangladeshWaterImagesTraining",
+    "validation_labels_path": "data/BangladeshWaterImagesValidation",
+    "test_labels_path": "data/BangladeshWaterImagesTest"
+}
+  

@@ -163,7 +163,8 @@ cython_debug/
 
 # Folders and files
 data/
-static/
-other/
+# static/
+# other/
 archive/
-data_extraction/ee_test.ipynb
+# data_extraction/ee_test.ipynb
+# gpu/availability.py
