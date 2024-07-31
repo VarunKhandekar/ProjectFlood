@@ -43,7 +43,7 @@ def generate_overlapping_events(file_path: str) -> pd.DataFrame:
 
     return df
 
-def generate_flood_events(file_path: str) -> dict:
+def generate_flood_events(core_config_path: str) -> dict:
     """
     Generate a dictionary of flood events with overlapping events merged under the earliest start date.
 
@@ -57,8 +57,10 @@ def generate_flood_events(file_path: str) -> dict:
         ValueError: If the provided file is not a CSV or Excel file.
         AssertionError: If the required columns are not present in the dataset.
     """
+    with open(core_config_path) as core_config_file:
+        core_config = json.load(core_config_file)
     # Preprocess raw flood data
-    df = generate_overlapping_events(file_path)
+    df = generate_overlapping_events(core_config["flood_events"])
     
     overlapping_dict = {}
 
@@ -91,7 +93,7 @@ def generate_flood_events(file_path: str) -> dict:
     
     return overlapping_dict
 
-def store_flood_dates(events_dict: dict, config_file: str):
+def store_flood_dates(events_dict: dict, core_config_path: str):
     """
     Store flood event dates into an Excel file.
 
@@ -110,7 +112,7 @@ def store_flood_dates(events_dict: dict, config_file: str):
     """
     dates = [i for i in events_dict.keys()]
     df = pd.DataFrame(dates, columns=["Dates"])
-    with open(config_file) as config_file:
-        config = json.load(config_file)
-    target_path = config["final_flood_dates"]
+    with open(core_config_path) as core_config_file:
+        core_config = json.load(core_config_file)
+    target_path = core_config["final_flood_dates"]
     df.to_excel(target_path, index=False)

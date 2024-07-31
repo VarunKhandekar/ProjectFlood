@@ -4,22 +4,25 @@ import subprocess
 from data_extraction.generic_helpers import *
 from data_extraction.rainfall_helpers import *
 
-def check_relevant_files_exist(config_file_path: str, days_before: int, days_after: int, freq: str):
+def check_relevant_files_exist(core_config_path: str, data_config_path: str, days_before: int, days_after: int, freq: str):
     # Call script to ensure folders are cleaned up
-    with open(config_file_path) as config_file:
-        config = json.load(config_file)
-    result = subprocess.run([config['cleanup']], capture_output=True, text=True)
+    with open(core_config_path) as core_config_file:
+        core_config = json.load(core_config_file)
+    result = subprocess.run([core_config['cleanup']], capture_output=True, text=True)
+
+    with open(data_config_path) as data_config_file:
+        data_config = json.load(data_config_file)
 
     missing_rainfall_images, missing_soil_moisture_images, rerun_dates = [], [], []
 
     # Go through flood and non-flood images.
     water_images = []
-    water_images.extend(os.listdir(config["non_flood_file_path"]))
-    water_images.extend(os.listdir(config["flood_file_path"]))
+    water_images.extend(os.listdir(data_config["non_flood_file_path"]))
+    water_images.extend(os.listdir(data_config["flood_file_path"]))
 
     soil_moisture_images = []
-    soil_moisture_images.extend(os.listdir(config["soil_moisture_flood_path"]))
-    soil_moisture_images.extend(os.listdir(config["soil_moisture_non_flood_path"]))
+    soil_moisture_images.extend(os.listdir(data_config["soil_moisture_flood_path"]))
+    soil_moisture_images.extend(os.listdir(data_config["soil_moisture_non_flood_path"]))
 
     
     for i in water_images:
@@ -30,7 +33,7 @@ def check_relevant_files_exist(config_file_path: str, days_before: int, days_aft
         rainfall_file_names = [rf[:-2] + "tif" for rf in rainfall_file_names]
 
         for rf in rainfall_file_names:
-            if rf not in os.listdir(config["rainfall_path"]):
+            if rf not in os.listdir(data_config["rainfall_path"]):
                 # print(rf, " is missing!")
                 missing_rainfall_images.append(rf)
                 rerun_dates.append(date)
@@ -53,7 +56,7 @@ def check_relevant_files_exist(config_file_path: str, days_before: int, days_aft
 if __name__=="__main__":
     # print(os.getcwd())
     # print(os.listdir("data/BangladeshRainfall"))
-    missing_rainfall_images, missing_soil_moisture_images, rerun_dates = check_relevant_files_exist("static/config.json", 7, 1, "3h")
+    missing_rainfall_images, missing_soil_moisture_images, rerun_dates = check_relevant_files_exist(os.environ["PROJECT_FLOOD_CORE_PATHS"], os.environ["PROJECT_FLOOD_DATA"], 7, 1, "3h")
     print(len(missing_rainfall_images))
     print(len(rerun_dates))
     print(rerun_dates)

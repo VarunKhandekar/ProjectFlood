@@ -33,7 +33,7 @@ def split_files(files: list, val_ratio: float, test_ratio: float) -> tuple:
     return train_files, val_files, test_files
 
 
-def split_training_test(config_file: str, resolution: int, flood_dates_file: str, val_ratio: float, test_ratio: float) -> tuple:
+def split_training_test(data_config_path: str, resolution: int, flood_dates_file: str, val_ratio: float, test_ratio: float) -> tuple:
     """
     Split files into training, validation, and test sets based on flood and non-flood dates.
 
@@ -49,9 +49,9 @@ def split_training_test(config_file: str, resolution: int, flood_dates_file: str
     """
     assert val_ratio + test_ratio <= 0.5, "Validation and test ratios combined should not exceed 0.5"  
 
-    with open("static/config.json") as config_file:
-        config = json.load(config_file)
-    water_images_path = f"{config['water_image_path']}_{resolution}_{resolution}"
+    with open(data_config_path) as data_config_file:
+        data_config = json.load(data_config_file)
+    water_images_path = f"{data_config['water_image_path']}_{resolution}_{resolution}"
 
     flood_dates = pd.read_excel(flood_dates_file)
     flood_dates = flood_dates["Dates"].tolist()
@@ -77,7 +77,7 @@ def split_training_test(config_file: str, resolution: int, flood_dates_file: str
 
     return train_files, val_files, test_files
 
-def save_files(config_file: str, resolution: int, files: list, dataset_type: Literal['training', 'validation', 'test']):
+def save_files(data_config_path: str, resolution: int, files: list, dataset_type: Literal['training', 'validation', 'test']):
     """
     Save files to their respective directories for training, validation, or testing.
 
@@ -94,17 +94,17 @@ def save_files(config_file: str, resolution: int, files: list, dataset_type: Lit
     if dataset_type not in dataset_types:
         raise ValueError(f"Invalid value provided. Choose from {dataset_types}")
     
-    with open(config_file) as config_file:
-        config = json.load(config_file)
+    with open(data_config_path) as data_config_file:
+        data_config = json.load(data_config_file)
     
     if dataset_type == 'training':
-        target_directory = f"{config['training_labels_path']}_{resolution}_{resolution}"
+        target_directory = f"{data_config['training_labels_path']}_{resolution}_{resolution}"
     
     elif dataset_type == 'validation':
-        target_directory = f"{config['validation_labels_path']}_{resolution}_{resolution}"
+        target_directory = f"{data_config['validation_labels_path']}_{resolution}_{resolution}"
     
     elif dataset_type == 'test':
-        target_directory = f"{config['test_labels_path']}_{resolution}_{resolution}"
+        target_directory = f"{data_config['test_labels_path']}_{resolution}_{resolution}"
 
     # remove existing directory and create new one
     if os.path.exists(target_directory):
@@ -112,7 +112,7 @@ def save_files(config_file: str, resolution: int, files: list, dataset_type: Lit
     os.mkdir(target_directory)
 
     for f in files:
-        source_root = f"{config['water_image_path']}_{resolution}_{resolution}"
+        source_root = f"{data_config['water_image_path']}_{resolution}_{resolution}"
         source = os.path.join(source_root, f)
         destination = os.path.join(target_directory, f)
         shutil.copy(source, destination)
@@ -124,14 +124,16 @@ if __name__ == "__main__":
     resolution = 256
     test_ratio = 0.2
     val_ratio = 0.2
-    config_file = "static/config.json"
-    train_files, val_files, test_files = split_training_test(config_file, 
+    data_config_file = os.environ["PROJECT_FLOOD_DATA"]
+    with open(os.environ["PROJECT_FLOOD_CORE_PATHS"]) as core_config_file:
+        core_config = json.load(core_config_file)
+    train_files, val_files, test_files = split_training_test(data_config_file, 
                                                              resolution, 
-                                                             "static/final_flood_dates.xlsx", 
+                                                             core_config["final_flood_dates"], 
                                                              val_ratio, 
                                                              test_ratio)
     
-    save_files(config_file, resolution, train_files,'training')
-    save_files(config_file, resolution, val_files, 'validation')
-    save_files(config_file, resolution, test_files, 'test')
+    save_files(data_config_file, resolution, train_files,'training')
+    save_files(data_config_file, resolution, val_files, 'validation')
+    save_files(data_config_file, resolution, test_files, 'test')
     

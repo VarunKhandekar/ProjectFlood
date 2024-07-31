@@ -6,6 +6,7 @@
     "topology_path_2044_2573": "/vol/bitbucket/vk223/project_flood/data/Topology_2044_2573",
 
     "rainfall_path_archive": "/vol/bitbucket/vk223/project_flood/data/Archive/BangladeshRainfall",
+    "temp_rainfall_path": "/vol/bitbucket/vk223/project_flood/data/temp/",
     
     "non_flood_file_path": "/vol/bitbucket/vk223/project_flood/data/BangladeshNonFloodImages",
     "flood_file_path": "/vol/bitbucket/vk223/project_flood/data/BangladeshFloodImages",

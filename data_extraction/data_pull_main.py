@@ -75,12 +75,12 @@ def process_flood_event(date, events, rainfall_days_before: int, rainfall_days_a
 
     # Pull rain data x days preceding, 1 day 'forecast'
     timestamps = generate_timestamps(date, rainfall_days_before, rainfall_days_after, freq="3h")
-    files = generate_files_of_interest(drive, timestamps, 'static/config.json', 'MSWEP_Past_3hr_folder_id')
+    files = generate_files_of_interest(drive, timestamps, os.environ["PROJECT_FLOOD_CORE_PATHS"], 'MSWEP_Past_3hr_folder_id')
     assert len(timestamps) == len(files)
 
     for i, timestamp in enumerate(timestamps):
-        rainfall_file = pull_and_crop_rainfall_data(drive, files[i], timestamp, "./data/temp/", rain_shape, 'static/config.json')
-        send_to_google_drive(drive, rainfall_file, 'static/config.json', 'bangladesh_rainfall_folder_id', overwrite=True)
+        rainfall_file = pull_and_crop_rainfall_data(drive, files[i], timestamp, os.environ["PROJECT_FLOOD_DATA"], rain_shape, os.environ["PROJECT_FLOOD_CORE_PATHS"])
+        send_to_google_drive(drive, rainfall_file, os.environ["PROJECT_FLOOD_CORE_PATHS"], 'bangladesh_rainfall_folder_id', overwrite=True)
 
 
 
@@ -147,13 +147,13 @@ def process_non_flood_event(date, rainfall_days_before: int, rainfall_days_after
  
     # Get rain data
     timestamps = generate_timestamps(date, rainfall_days_before, rainfall_days_after, freq="3h")
-    files = generate_files_of_interest(drive, timestamps, 'static/config.json', 'MSWEP_Past_3hr_folder_id')
+    files = generate_files_of_interest(drive, timestamps, os.environ["PROJECT_FLOOD_CORE_PATHS"], 'MSWEP_Past_3hr_folder_id')
     
     assert len(timestamps) == len(files)
     
     for i, timestamp in enumerate(timestamps):
-        rainfall_file = pull_and_crop_rainfall_data(drive, files[i], timestamp, "./data/temp/", rain_shape, 'static/config.json')
-        send_to_google_drive(drive, rainfall_file, 'static/config.json', 'bangladesh_rainfall_folder_id', overwrite=True)
+        rainfall_file = pull_and_crop_rainfall_data(drive, files[i], timestamp, os.environ["PROJECT_FLOOD_DATA"], rain_shape, os.environ["PROJECT_FLOOD_CORE_PATHS"])
+        send_to_google_drive(drive, rainfall_file, os.environ["PROJECT_FLOOD_CORE_PATHS"], 'bangladesh_rainfall_folder_id', overwrite=True)
 
 
 
@@ -165,9 +165,9 @@ if __name__=="__main__":
     start = time.time()
     # Set Up Google Earth Engine
     ee.Authenticate()
-    with open('static/config.json') as config_file:
-        config = json.load(config_file)
-    earth_engine_project_name = config['earth_engine_project']
+    with open(os.environ["PROJECT_FLOOD_CORE_PATHS"]) as core_config_file:
+        core_config = json.load(core_config_file)
+    earth_engine_project_name = core_config['earth_engine_project']
     ee.Initialize(project=earth_engine_project_name)
     print(ee.String('Hello from the Earth Engine servers!').getInfo())
 
@@ -179,16 +179,14 @@ if __name__=="__main__":
     # Set Up Google Drive API
     # drive = authenticate("config.json")
     gauth = GoogleAuth()
-    with open("static/config.json") as config_file:
-        config = json.load(config_file)
-    google_drive_credentials_path = config['google_drive_credentials']
-    google_drive_oauth_path = config['google_drive_oauth']
+    google_drive_credentials_path = core_config['google_drive_credentials']
+    google_drive_oauth_path = core_config['google_drive_oauth']
     gauth.LoadClientConfigFile(google_drive_credentials_path)
     gauth.LocalWebserverAuth()
     drive = GoogleDrive(gauth)
 
     # Get Bangladesh outline
-    bangladesh_shape = generate_country_outline('static/bangladesh-outline_68.geojson')
+    bangladesh_shape = generate_country_outline(core_config['bangladesh_shape_outline'])
     bangladesh_bounding_box = box(*bangladesh_shape.bounds)
     bangladesh_bounding_box_ee = ee.Geometry.BBox(*bangladesh_shape.bounds)
 
@@ -225,7 +223,7 @@ if __name__=="__main__":
     time.sleep(10)
 
     # FLOOD EVENTS
-    refined_flood_events = generate_flood_events('static/Bangladesh_Flood_Events.xlsx')
+    refined_flood_events = generate_flood_events(os.environ["PROJECT_FLOOD_CORE_PATHS"])
     store_flood_dates(refined_flood_events) #Save list of flood dates under consideration
  
     # Submit jobs, process pool to avoid memory issues
@@ -244,7 +242,7 @@ if __name__=="__main__":
     print("Running non flood events....")
     num_dates_to_generate = 100
     safety_window = 10
-    random_dates = generate_random_non_flood_dates('static/Bangladesh_Flood_Events.xlsx', num_dates_to_generate, safety_window, "static/config.json")
+    random_dates = generate_random_non_flood_dates(os.environ["PROJECT_FLOOD_CORE_PATHS"], num_dates_to_generate, safety_window, os.environ["PROJECT_FLOOD_DATA"])
     # random_dates = pd.read_csv("to_rerun.csv", header=None)
     # random_dates = list(random_dates.values.flatten())
     # random_dates = [pd.Timestamp(year=2000, month=9, day=18)]

@@ -26,7 +26,7 @@ def convert_date_to_MSWEP_file_name(timestamp: pd.Timestamp) -> str:
 
 def generate_files_of_interest(drive: GoogleDrive, 
                                timestamps: list, 
-                               config: str, 
+                               core_config_path: str, 
                                folder: str) -> list:
     """
     Generate a list of files of interest from Google Drive based on given timestamps.
@@ -40,9 +40,9 @@ def generate_files_of_interest(drive: GoogleDrive,
     Returns:
         list: A list of files from Google Drive that match the generated file names.
     """
-    with open(config) as config_file:
-        config = json.load(config_file)
-    folder_id = config[folder]
+    with open(core_config_path) as core_config_file:
+        core_config = json.load(core_config_file)
+    folder_id = core_config[folder]
 
     file_names = [convert_date_to_MSWEP_file_name(timestamp) for timestamp in timestamps]
 
@@ -55,7 +55,7 @@ def generate_files_of_interest(drive: GoogleDrive,
 
 def reproject_and_upsample_rasterio(input_file: str, 
                                     output_file: str, 
-                                    config_file: str) -> str:
+                                    core_config_path: str) -> str:
     """
     Reproject and upsample a raster file using Rasterio.
 
@@ -74,9 +74,9 @@ def reproject_and_upsample_rasterio(input_file: str,
         src_transform = src.transform
         data = src.read()
         src_crs = src.crs
-        with open(config_file) as config_file:
-            config = json.load(config_file)
-        master_file = config['rainfall_reprojection_master']
+        with open(core_config_path) as core_config_file:
+            core_config = json.load(core_config_file)
+        master_file = core_config['rainfall_reprojection_master']
         # Open target file to get target dimensions and transform
         with rasterio.open(master_file) as target:
             target_transform = target.transform
@@ -116,7 +116,7 @@ def reproject_and_upsample_rasterio(input_file: str,
 
 def reproject_and_upsample_PIL(input_file: str, 
                                output_file: str, 
-                               config_file: str,
+                               core_config_path: str,
                                desired_resolution: int) -> str:
     """
     Reproject, upsample, and pad an image file using PIL.
@@ -138,9 +138,9 @@ def reproject_and_upsample_PIL(input_file: str,
         5. Saves the padded image to the specified output file with TIFF deflate compression.
     """
     lowres_image = Image.open(input_file)
-    with open(config_file) as config_file:
-        config = json.load(config_file)
-    target_image = Image.open(config['rainfall_reprojection_master_low_res'])
+    with open(core_config_path) as core_config_file:
+        core_config = json.load(core_config_file)
+    target_image = Image.open(core_config['rainfall_reprojection_master_low_res'])
 
     upsampled_image = lowres_image.resize((target_image.width, target_image.height))
     upsampled_image = pad_to_square(upsampled_image, desired_resolution)
@@ -159,9 +159,9 @@ def get_transform_from_xarray(data_array):
 def pull_and_crop_rainfall_data(drive: GoogleDrive, 
                                 original_file, 
                                 timestamp: pd.Timestamp, 
-                                temp_output_path: str, 
+                                data_config_path: str, 
                                 shape: Polygon, 
-                                config_file: str,
+                                core_config_path: str,
                                 desired_resolution: int) -> str:
     """
     Pull, crop, and process rainfall data from Google Drive.
@@ -172,7 +172,7 @@ def pull_and_crop_rainfall_data(drive: GoogleDrive,
         timestamp (pd.Timestamp): The timestamp corresponding to the file.
         temp_output_path (str): Path to the temporary output directory.
         shape (Polygon): A shapely Polygon object defining the area to crop the data to.
-        config_file (str): Path to the configuration file.
+        core_config (str): Path to the configuration file.
         desired_resolution (int): The desired width and height for the output image.
 
     Returns:
@@ -184,6 +184,10 @@ def pull_and_crop_rainfall_data(drive: GoogleDrive,
         3. Converts the data to a TIFF file.
         4. Reprojects, upsamples, and compresses the TIFF file to the desired resolution.
     """
+    with open(data_config_path) as data_config_file:
+        data_config = json.load(data_config_file)
+    temp_output_path = data_config["temp_rainfall_path"]
+
     new_file = drive.CreateFile({'id': original_file['id']})
     new_path = os.path.join(temp_output_path, f"{timestamp.year}{timestamp.dayofyear:03}.{timestamp.hour:02}.nc")
     lowres_tif_file = os.path.join(temp_output_path, f"{timestamp.year}{timestamp.dayofyear:03}.{timestamp.hour:02}_lowres.tif")
@@ -215,7 +219,7 @@ def pull_and_crop_rainfall_data(drive: GoogleDrive,
     # Do reprojection, upsampling and compression before saving down
     output_tif_file = os.path.join(temp_output_path, f"{timestamp.year}{timestamp.dayofyear:03}.{timestamp.hour:02}.tif")
     # reproject_and_upsample_rasterio(lowres_tif_file, output_tif_file, config_file) #2044x2573
-    reproject_and_upsample_PIL(lowres_tif_file, output_tif_file, config_file, desired_resolution) #256x256
+    reproject_and_upsample_PIL(lowres_tif_file, output_tif_file, core_config_path, desired_resolution) #256x256
     os.remove(lowres_tif_file)
 
     return output_tif_file

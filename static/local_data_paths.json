@@ -1,0 +1,23 @@
+{
+    "non_flood_file_path_2044_2573": "/home/vkhandekar/project_flood/data/BangladeshNonFloodImages_2044_2573",
+    "flood_file_path_2044_2573": "/home/vkhandekar/project_flood/data/BangladeshFloodImages_2044_2573",
+    "soil_moisture_flood_path_2044_2573": "/home/vkhandekar/project_flood/data/BangladeshSoilMoisture_2044_2573",
+    "soil_moisture_non_flood_path_2044_2573": "/home/vkhandekar/project_flood/data/BangladeshSoilMoistureNonFlood_2044_2573",
+    "topology_path_2044_2573": "/home/vkhandekar/project_flood/data/Topology_2044_2573",
+
+    "rainfall_path_archive": "/home/vkhandekar/project_flood/data/Archive/BangladeshRainfall",
+    "temp_rainfall_path": "/home/vkhandekar/project_flood/data/temp/",
+    
+    "non_flood_file_path": "/home/vkhandekar/project_flood/data/BangladeshNonFloodImages",
+    "flood_file_path": "/home/vkhandekar/project_flood/data/BangladeshFloodImages",
+    "water_image_path": "/home/vkhandekar/project_flood/data/BangladeshWaterImages",
+    "rainfall_path": "/home/vkhandekar/project_flood/data/BangladeshRainfall",
+    "soil_moisture_flood_path": "/home/vkhandekar/project_flood/data/BangladeshSoilMoisture",
+    "soil_moisture_non_flood_path": "/home/vkhandekar/project_flood/data/BangladeshSoilMoistureNonFlood",
+    "soil_moisture_combo_path": "/home/vkhandekar/project_flood/data/BangladeshSoilMoistureCombo",
+    "topology_path": "/home/vkhandekar/project_flood/data/Topology",
+
+    "training_labels_path": "/home/vkhandekar/project_flood/data/BangladeshWaterImagesTraining",
+    "validation_labels_path": "/home/vkhandekar/project_flood/data/BangladeshWaterImagesValidation",
+    "test_labels_path": "/home/vkhandekar/project_flood/data/BangladeshWaterImagesTest"
+}
