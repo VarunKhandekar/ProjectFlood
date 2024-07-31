@@ -168,3 +168,4 @@ data/
 archive/
 # data_extraction/ee_test.ipynb
 # gpu/availability.py
+requirements.txt

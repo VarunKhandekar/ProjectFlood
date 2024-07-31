@@ -1,5 +1,5 @@
 {
-    "cleanup": "./remove_zone_identifiers.sh",
+    "cleanup": "/remove_zone_identifiers.sh",
     
     "google_drive_credentials": "static/google_drive_credentials.json",
     "earth_engine_project": "ee-varunkhandekar",
