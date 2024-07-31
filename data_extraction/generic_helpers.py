@@ -53,7 +53,7 @@ def generate_timestamps(date: pd.Timestamp, days_before: int, days_after: int, f
     # don't include final forecast as it takes us into day t+days_after+1
     return timestamps.tolist()[:-1]
 
-def generate_random_non_flood_dates(file_path: str, num_dates: int, safety_window: int, config_file: str) -> list:
+def generate_random_non_flood_dates(core_config_path: str, num_dates: int, safety_window: int, data_config_path: str) -> list:
     """
     Generate a list of random dates that are not during flood periods.
 
@@ -66,6 +66,9 @@ def generate_random_non_flood_dates(file_path: str, num_dates: int, safety_windo
     Returns:
         list: A list of random non-flood dates.
     """
+    with open(core_config_path) as core_config_file:
+        core_config = json.load(core_config_file)
+    file_path = core_config["flood_events"]
 
     # Read in data file
     if file_path.endswith('.csv'):
@@ -90,9 +93,9 @@ def generate_random_non_flood_dates(file_path: str, num_dates: int, safety_windo
     exclusion_periods = list(zip(df['dfo_began_uk'], df['dfo_ended_uk']))
 
     # Get current dates we have already downloaded
-    with open(config_file) as config_file:
-        config = json.load(config_file)
-    existing_image_file_path = config['non_flood_file_path']
+    with open(data_config_path) as data_config_file:
+        data_config = json.load(data_config_file)
+    existing_image_file_path = data_config['non_flood_file_path']
     current_dates = [pd.to_datetime(re.search(r'\d{8}', i).group(0), format=r'%Y%m%d') for i in os.listdir(existing_image_file_path)]
 
     random_dates = []
@@ -141,10 +144,10 @@ def pad_to_square(image: Image, desired_resolution: int) -> Image:
     padded_image = ImageOps.expand(image, (0, 0, pad_width, pad_height), fill='black')
     return padded_image
 
-def resize_and_pad_with_PIL(file_path: str, config_file: str, desired_resolution: int, target_file_path: str):
-    with open(config_file) as config_file:
-        config = json.load(config_file)
-    target_image_file_path = config[f'rainfall_reprojection_master_{desired_resolution}']
+def resize_and_pad_with_PIL(file_path: str, core_config_path: str, desired_resolution: int, target_file_path: str):
+    with open(core_config_path) as core_config_file:
+        core_config = json.load(core_config_file)
+    target_image_file_path = core_config[f'rainfall_reprojection_master_{desired_resolution}']
     target_image = Image.open(target_image_file_path)
     new_width, new_height = target_image.width, target_image.height
 

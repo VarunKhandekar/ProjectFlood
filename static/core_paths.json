@@ -12,6 +12,8 @@
     "rainfall_reprojection_master_high_res": "static/BangladeshFlood_MASTER_2044_2573.tif",
     "rainfall_reprojection_master_256": "static/BangladeshFlood_MASTER_203_256.tif",
     "final_flood_dates": "static/final_flood_dates.xlsx",
+    "flood_events": "static/Bangladesh_Flood_Events.xlsx",
+    "bangladesh_shape_outline": "static/bangladesh-outline_68.geojson",
 
     "non_flood_file_path_2044_2573": "data/BangladeshNonFloodImages_2044_2573",
     "flood_file_path_2044_2573": "data/BangladeshFloodImages_2044_2573",
@@ -20,6 +22,7 @@
     "topology_path_2044_2573": "data/Topology_2044_2573",
 
     "rainfall_path_archive": "data/Archive/BangladeshRainfall",
+    "temp_rainfall_path": "/home/vkhandekar/project_flood/data/temp/",
     
     "non_flood_file_path": "data/BangladeshNonFloodImages",
     "flood_file_path": "data/BangladeshFloodImages",

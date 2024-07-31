@@ -27,17 +27,17 @@ def process_rainfall_batch(batch: list[pd.Timestamp], drive: GoogleDrive, boundi
         - The configuration file (`static/config.json`) should contain the necessary paths and folder IDs.
         - The desired resolution for the processed files should be specified in the `desired_resolution` variable.
     """
-    drive_files = generate_files_of_interest(drive, batch, "static/config.json", 'MSWEP_Past_3hr_folder_id')
+    drive_files = generate_files_of_interest(drive, batch, os.environ["PROJECT_FLOOD_CORE_PATHS"], 'MSWEP_Past_3hr_folder_id')
 
     for j, ts in enumerate(batch):
         rainfall_file = pull_and_crop_rainfall_data(drive, 
                                                     drive_files[j], 
                                                     ts, 
-                                                    "./data/temp/", 
+                                                    os.environ["PROJECT_FLOOD_DATA"], 
                                                     bounding_box, 
-                                                    "static/config.json", 
+                                                    os.environ["PROJECT_FLOOD_CORE_PATHS"], 
                                                     desired_resolution)
-        destination = os.path.join(config[f"rainfall_path_{desired_resolution}_{desired_resolution}"], os.path.basename(rainfall_file))
+        destination = os.path.join(f"{data_config['rainfall_path']}_{desired_resolution}_{desired_resolution}", os.path.basename(rainfall_file))
         print(rainfall_file, destination)
         shutil.move(rainfall_file, destination)
 
@@ -45,38 +45,38 @@ def process_rainfall_batch(batch: list[pd.Timestamp], drive: GoogleDrive, boundi
 if __name__ == "__main__":
     # Tweak water, soil moisture, topology
     desired_resolution = 256
-    with open("static/config.json") as config_file:
-        config = json.load(config_file)
+    with open(os.environ["PROJECT_FLOOD_DATA"]) as data_config_file:
+        data_config = json.load(data_config_file)
     
-    resize_and_pad_file_paths = [config['non_flood_file_path_2044_2573'],
-                                 config['flood_file_path_2044_2573'],
-                                 config['soil_moisture_flood_path_2044_2573'],
-                                 config['soil_moisture_non_flood_path_2044_2573'],
-                                 config['topology_path_2044_2573']]
-    target_file_paths = [config['non_flood_file_path'],
-                         config['flood_file_path'],
-                         config['soil_moisture_flood_path'],
-                         config['soil_moisture_non_flood_path'],
-                         config['topology_path']]
+    resize_and_pad_file_paths = [data_config['non_flood_file_path_2044_2573'],
+                                 data_config['flood_file_path_2044_2573'],
+                                 data_config['soil_moisture_flood_path_2044_2573'],
+                                 data_config['soil_moisture_non_flood_path_2044_2573'],
+                                 data_config['topology_path_2044_2573']]
+    target_file_paths = [data_config['non_flood_file_path'],
+                         data_config['flood_file_path'],
+                         data_config['soil_moisture_flood_path'],
+                         data_config['soil_moisture_non_flood_path'],
+                         data_config['topology_path']]
     
-    target_file_paths = [f"{config['non_flood_file_path']}_{str(desired_resolution)}_{str(desired_resolution)}",
-                         f"{config['flood_file_path']}_{str(desired_resolution)}_{str(desired_resolution)}",
-                         f"{config['soil_moisture_flood_path']}_{str(desired_resolution)}_{str(desired_resolution)}",
-                         f"{config['soil_moisture_non_flood_path']}_{str(desired_resolution)}_{str(desired_resolution)}",
-                         f"{config['topology_path']}_{str(desired_resolution)}_{str(desired_resolution)}"]
+    target_file_paths = [f"{data_config['non_flood_file_path']}_{str(desired_resolution)}_{str(desired_resolution)}",
+                         f"{data_config['flood_file_path']}_{str(desired_resolution)}_{str(desired_resolution)}",
+                         f"{data_config['soil_moisture_flood_path']}_{str(desired_resolution)}_{str(desired_resolution)}",
+                         f"{data_config['soil_moisture_non_flood_path']}_{str(desired_resolution)}_{str(desired_resolution)}",
+                         f"{data_config['topology_path']}_{str(desired_resolution)}_{str(desired_resolution)}"]
     
     for i in range(len(resize_and_pad_file_paths)):
         for f in os.listdir(resize_and_pad_file_paths[i]):
             raw_file_path = os.path.join(resize_and_pad_file_paths[i], f)
             # print("working on", raw_file_path)
             target_file_path = os.path.join(target_file_paths[i], f)
-            resize_and_pad_with_PIL(raw_file_path, "static/config.json", desired_resolution, target_file_path)
+            resize_and_pad_with_PIL(raw_file_path, os.environ["PROJECT_FLOOD_CORE_PATHS"], desired_resolution, target_file_path)
     
     # Combine soil moisture and water images into one folder
     for i in range(len(target_file_paths[:-1])):
         # Water images
         if i < 2:
-            combo_path = f"{config['water_image_path']}_{str(desired_resolution)}_{str(desired_resolution)}"
+            combo_path = f"{data_config['water_image_path']}_{str(desired_resolution)}_{str(desired_resolution)}"
             os.makedirs(combo_path, exist_ok=True)
             for f in os.listdir(target_file_paths[i]):
                 source = os.path.join(target_file_paths[i], f)
@@ -84,7 +84,7 @@ if __name__ == "__main__":
                 shutil.copy(source, destination)
         # Soil Moisture images
         else:
-            combo_path = f"{config['soil_moisture_combo_path']}_{str(desired_resolution)}_{str(desired_resolution)}"
+            combo_path = f"{data_config['soil_moisture_combo_path']}_{str(desired_resolution)}_{str(desired_resolution)}"
             os.makedirs(combo_path, exist_ok=True)
             for f in os.listdir(target_file_paths[i]):
                 source = os.path.join(target_file_paths[i], f)
@@ -94,17 +94,19 @@ if __name__ == "__main__":
     
     # # Tweak rainfall
     gauth = GoogleAuth()
-    google_drive_credentials_path = config['google_drive_credentials']
-    google_drive_oauth_path = config['google_drive_oauth']
+    with open(os.environ["PROJECT_FLOOD_CORE_PATHS"]) as core_config_file:
+        core_config = json.load(core_config_file)
+    google_drive_credentials_path = core_config['google_drive_credentials']
+    google_drive_oauth_path = core_config['google_drive_oauth']
     gauth.LoadClientConfigFile(google_drive_credentials_path)
     gauth.LocalWebserverAuth()
     drive = GoogleDrive(gauth)
 
-    bangladesh_shape = generate_country_outline('static/bangladesh-outline_68.geojson')
+    bangladesh_shape = generate_country_outline(core_config["bangladesh_shape_outline"])
     bangladesh_bounding_box = box(*bangladesh_shape.bounds)
 
 
-    rainfall_archive = config['rainfall_path_archive']
+    rainfall_archive = data_config['rainfall_path_archive']
 
     filedates = [pd.Timestamp(int(i[:4]), 1, 1) + pd.Timedelta(days=int(i[4:7]) - 1, hours=int(i[8:10])) 
                  for i in os.listdir(rainfall_archive)]

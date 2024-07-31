@@ -37,7 +37,7 @@ def authenticate(config_file_path: str) -> GoogleDrive:
 
     return GoogleDrive(gauth)
 
-def send_to_google_drive(drive: GoogleDrive, file_path: str, config_file_path: str, target_location: str, overwrite=True):
+def send_to_google_drive(drive: GoogleDrive, file_path: str, core_config_path: str, target_location: str, overwrite=True):
     """
     Upload a file to Google Drive, with an option to overwrite if the file already exists.
 
@@ -52,9 +52,9 @@ def send_to_google_drive(drive: GoogleDrive, file_path: str, config_file_path: s
         None
     """
     # Get config details
-    with open(config_file_path) as config_file:
-        config = json.load(config_file)
-    folder_id = config[target_location]
+    with open(core_config_path) as core_config_file:
+        core_config = json.load(core_config_file)
+    folder_id = core_config[target_location]
 
     # drive = authenticate(config_file_path)
     file_name = os.path.basename(file_path)

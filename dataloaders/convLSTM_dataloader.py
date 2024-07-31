@@ -7,20 +7,20 @@ from dataloaders.dataloader_helpers import *
 from dataloaders.custom_image_transforms import *
 
 class FloodPredictionDataset(Dataset):
-    def __init__(self, config_file_path, label_file_name, resolution, preceding_rainfall_days, forecast_rainfall_days, transform=None):
-        with open(config_file_path) as config_file:
-            config = json.load(config_file)
+    def __init__(self, data_config_path, label_file_name, resolution, preceding_rainfall_days, forecast_rainfall_days, transform=None):
+        with open(data_config_path) as data_config_file:
+            data_config = json.load(data_config_file)
             
-        self.rainfall_dir = f"{config['rainfall_path']}_{resolution}_{resolution}"
-        self.topology_dir = f"{config['topology_path']}_{resolution}_{resolution}"
-        self.soil_moisture_combo_dir = f"{config['soil_moisture_combo_path']}_{resolution}_{resolution}"
-        self.water_images_dir = f"{config[label_file_name]}_{resolution}_{resolution}"
+        self.rainfall_dir = f"{data_config['rainfall_path']}_{resolution}_{resolution}"
+        self.topology_dir = f"{data_config['topology_path']}_{resolution}_{resolution}"
+        self.soil_moisture_combo_dir = f"{data_config['soil_moisture_combo_path']}_{resolution}_{resolution}"
+        self.water_images_dir = f"{data_config[label_file_name]}_{resolution}_{resolution}"
         self.preceding_rainfall_days = preceding_rainfall_days
         self.forecast_rainfall_days = forecast_rainfall_days
         self.transform = transform
         self.resolution = resolution
 
-        self.rainfall_min, self.rainfall_max = get_log_rainfall_stats_training(f"{config['training_labels_path']}_{self.resolution}_{self.resolution}", 
+        self.rainfall_min, self.rainfall_max = get_log_rainfall_stats_training(f"{data_config['training_labels_path']}_{self.resolution}_{self.resolution}", 
                                                                                self.rainfall_dir,
                                                                                self.preceding_rainfall_days)
         
