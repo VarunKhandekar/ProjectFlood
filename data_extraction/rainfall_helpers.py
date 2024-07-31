@@ -6,6 +6,7 @@ import xarray as xr
 from shapely.geometry import Polygon, mapping
 from osgeo import gdal
 import rasterio
+from rasterio.transform import from_origin
 from rasterio.warp import reproject, Resampling
 import numpy as np
 from PIL import Image
@@ -147,6 +148,13 @@ def reproject_and_upsample_PIL(input_file: str,
 
     return output_file
 
+def get_transform_from_xarray(data_array):
+    # Assuming the coordinates are named 'lon' and 'lat' and are regularly spaced
+    lon_res = data_array.lon[1] - data_array.lon[0]  # Longitude resolution
+    lat_res = data_array.lat[1] - data_array.lat[0]  # Latitude resolution
+    transform = from_origin(data_array.lon.min(), data_array.lat.max(), lon_res, abs(lat_res))
+    return transform
+
 
 def pull_and_crop_rainfall_data(drive: GoogleDrive, 
                                 original_file, 
@@ -178,7 +186,7 @@ def pull_and_crop_rainfall_data(drive: GoogleDrive,
     """
     new_file = drive.CreateFile({'id': original_file['id']})
     new_path = os.path.join(temp_output_path, f"{timestamp.year}{timestamp.dayofyear:03}.{timestamp.hour:02}.nc")
-    temp_path = os.path.join(temp_output_path, f"{timestamp.year}{timestamp.dayofyear:03}.{timestamp.hour:02}_tmp.nc")
+    lowres_tif_file = os.path.join(temp_output_path, f"{timestamp.year}{timestamp.dayofyear:03}.{timestamp.hour:02}_lowres.tif")
     new_file.GetContentFile(new_path)
 
     # Clip the data and save down
@@ -190,23 +198,20 @@ def pull_and_crop_rainfall_data(drive: GoogleDrive,
         
         data_clipped = data.rio.clip(geojson, all_touched=True)
         data_clipped = ((data_clipped*1000)//1).astype(np.uint16) # QUANTIZATION
-    data_clipped.to_netcdf(temp_path, mode='w')
+    
+    metadata = {
+        'driver': 'GTiff',
+        'height': data_clipped.shape[0],
+        'width': data_clipped.shape[1],
+        'count': 1,
+        'dtype': data_clipped.dtype,  # Using the numpy dtype directly
+        'crs': 'EPSG:4326', 
+        'transform': get_transform_from_xarray(data_clipped)
+    }
+    with rasterio.open(lowres_tif_file, 'w', **metadata) as dst:
+        dst.write(data_clipped.values, 1) 
     os.remove(new_path)
-    os.rename(temp_path, new_path)
-
-    # Now convert to .tif using GDAL
-    lowres_tif_file = os.path.join(temp_output_path, f"{timestamp.year}{timestamp.dayofyear:03}.{timestamp.hour:02}_lowres.tif")
-    precipitation_data = gdal.Open(f'NETCDF:"{new_path}":precipitation')
-    driver = gdal.GetDriverByName('GTiff')
-
-    output_dataset = driver.CreateCopy(lowres_tif_file, precipitation_data, 0)
-    output_dataset.SetProjection('EPSG:4326')
-
-    precipitation_data = None
-    output_dataset = None
-
-    os.remove(new_path)
-
+    
     # Do reprojection, upsampling and compression before saving down
     output_tif_file = os.path.join(temp_output_path, f"{timestamp.year}{timestamp.dayofyear:03}.{timestamp.hour:02}.tif")
     # reproject_and_upsample_rasterio(lowres_tif_file, output_tif_file, config_file) #2044x2573
