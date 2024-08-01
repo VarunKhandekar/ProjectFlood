@@ -52,7 +52,7 @@ criterion = nn.BCEWithLogitsLoss()
 # Train the model
 train_dataloader = get_dataloader("training_labels_path", resolution=256, preceding_rainfall_days=preceding_rainfall_days, forecast_rainfall_days=1, 
                                   transform=train_transform, batch_size=train_batch_size, shuffle=True, num_workers=4)
-model, end_epoch = train_model(os.environ['PROJECT_FLOOD_DATA'], model, train_dataloader, criterion, optimizer, learning_rate, num_epochs, device)
+model, end_epoch = train_model(os.environ['PROJECT_FLOOD_DATA'], model, train_dataloader, criterion, optimizer, learning_rate, num_epochs, device, model_run_date)
 
 
 # Evaluate the model
