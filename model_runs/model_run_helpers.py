@@ -13,7 +13,7 @@ def get_dataloader(label_file_name: Literal['training_labels_path', 'validation_
                    resolution: int, preceding_rainfall_days: int, forecast_rainfall_days: int, transform, 
                    batch_size: int, shuffle: bool, num_workers: int):
     dataset = FloodPredictionDataset(os.environ["PROJECT_FLOOD_DATA"], label_file_name, resolution, preceding_rainfall_days, forecast_rainfall_days, transform)
-    dataloader = DataLoader(dataset, batch_size, shuffle, num_workers)
+    dataloader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers)
     return dataloader
 
 
