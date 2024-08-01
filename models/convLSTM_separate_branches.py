@@ -74,13 +74,14 @@ class ConvLSTM(nn.Module):
             cur_layer_input = torch.stack(output_inner, dim=1)
         return cur_layer_input[:, -1, :, :, :]
 
-class ConvLSTMCombinedModel(nn.Module):
+class ConvLSTMSeparateBranches(nn.Module):
     def __init__(self, preceding_rainfall_days, forecast_rainfall_days, dropout_prob):
-        super(ConvLSTMCombinedModel, self).__init__()
+        super(ConvLSTMSeparateBranches, self).__init__()
         self.preceding_rainfall_days = preceding_rainfall_days
         self.forecast_rainfall_days = forecast_rainfall_days
         self.rainfall_sequence_length = preceding_rainfall_days + forecast_rainfall_days
         self.dropout_prob = dropout_prob
+        self.name = "convLSTM_separate_branches"
 
         self.conv1 = ConvBlock(1, 16, self.dropout_prob)
         self.conv2 = ConvBlock(1, 16, self.dropout_prob)

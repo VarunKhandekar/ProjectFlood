@@ -1,6 +1,6 @@
 import torch
-import torch.nn as nn
 import torch.optim as optim
+import csv
 from typing import Literal
 from datetime import date
 from torch.utils.data import DataLoader
@@ -9,32 +9,34 @@ from models.convLSTM_separate_branches import *
 from model_runs.model_evaluation_helpers import *
 
 
-def get_dataloader(label_file_name: Literal['training', 'validation', 'test'], resolution: int, preceding_rainfall_days: int, forecast_rainfall_days: int, transform, 
+def get_dataloader(label_file_name: Literal['training_labels_path', 'validation_labels_path', 'test_labels_path'], 
+                   resolution: int, preceding_rainfall_days: int, forecast_rainfall_days: int, transform, 
                    batch_size: int, shuffle: bool, num_workers: int):
     dataset = FloodPredictionDataset(os.environ["PROJECT_FLOOD_DATA"], label_file_name, resolution, preceding_rainfall_days, forecast_rainfall_days, transform)
     dataloader = DataLoader(dataset, batch_size, shuffle, num_workers)
     return dataloader
 
 
-def build_model(model_type: Literal['convLSTM_separate_branches', 'vae', 'ddpm'], preceding_rainfall_days: int, forecast_rainfall_days: int, dropout_prob: float):
-    if model_type == 'convLSTM_separate_branches':
-        model = ConvLSTMCombinedModel(preceding_rainfall_days, forecast_rainfall_days, dropout_prob)
+# def build_model(model_type: Literal['convLSTM_separate_branches', 'vae', 'ddpm'], preceding_rainfall_days: int, forecast_rainfall_days: int, dropout_prob: float = 0.0):
+#     if model_type == 'convLSTM_separate_branches':
+#         model = ConvLSTMCombinedModel(preceding_rainfall_days, forecast_rainfall_days, dropout_prob)
     
-    elif model_type == 'vae':
-        pass
+#     elif model_type == 'vae':
+#         pass
     
-    elif model_type == 'ddpm':
-        pass
+#     elif model_type == 'ddpm':
+#         pass
     
-    return model
+#     return model
 
 
-
-def train_model(core_config_path: str, model, dataloader, criterion, optimizer_type, lr, num_epochs, device):
-    with open(core_config_path) as core_config_file:
-        core_config = json.load(core_config_file)
+def train_model(data_config_path: str, model, dataloader, criterion, optimizer_type, lr, num_epochs, device, model_run_date):
+    
+    with open(data_config_path) as data_config_file:
+        data_config = json.load(data_config_file)
 
     optimizer = optimizer_type(model.parameters(), lr=lr)
+    model = model.to_device()
     model.train()
     for epoch in range(num_epochs):
         for inputs, labels in dataloader:
@@ -46,31 +48,45 @@ def train_model(core_config_path: str, model, dataloader, criterion, optimizer_t
             optimizer.step()
         print(f'Epoch {epoch+1}/{num_epochs}, Loss: {loss.item():.4f}')
         if epoch % 100 == 0:
-            save_checkpoint(model, optimizer, epoch, os.path.join(core_config["saved_models_path"], f"convLSTM_separate_branch_{epoch}_{date.today().strftime(r'%Y%m%d')}.pt"))
-    return model
+            hyperparams = {
+                            'learning_rate': lr,
+                            'train_batch_size': dataloader.batch_size,
+                            'optimizer_type': optimizer.__class__.__name__,  # Extracting the class name as a string
+                            'num_epochs': num_epochs,
+                            'preceding_rainfall_days': model.preceding_rainfall_days,
+                            'dropout_prob': model.dropout_prob,
+                            'criterion': criterion.__class__.__name__  # Extracting the class name as a string
+                        }
+            save_checkpoint(model, optimizer, epoch, os.path.join(data_config["saved_models_path"], f"{model.name}_{epoch}_{model_run_date}.pt"), hyperparams)
+    save_checkpoint(model, optimizer, epoch, os.path.join(data_config["saved_models_path"], f"{model.name}_{epoch}_{model_run_date}.pt"), hyperparams)
+    return model, epoch
 
 
-def save_checkpoint(model, optimizer, epoch, filepath):
+def save_checkpoint(model, optimizer, epoch, filepath, hyperparams):
     torch.save({
+        'model_type': model.name,
         'epoch': epoch,
         'model_state_dict': model.state_dict(),
-        'optimizer_state_dict': optimizer.state_dict()
-        # 'hyperparams': hyperparams
+        'optimizer_state_dict': optimizer.state_dict(),
+        'hyperparams': hyperparams
     }, filepath)
 
 
 def load_checkpoint(filepath):
     checkpoint = torch.load(filepath)
     hyperparams = checkpoint['hyperparams']
-    model = build_model(hyperparams['model_layers'])
+    if checkpoint['model_type'] == "convLSTM_separate_branches":
+        model = ConvLSTMSeparateBranches(hyperparams['preceding_rainfall_days'], 1,  hyperparams['dropout_prob'])
     optimizer = getattr(optim, hyperparams['optimizer_type'])(model.parameters(), lr=hyperparams['learning_rate'])
+
+    #Set up model and optimizer with values from that checkpoint
     model.load_state_dict(checkpoint['model_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
     return model, optimizer, checkpoint['epoch'], hyperparams
 
 
 
-def evaluate_model(model, dataloader, criterion, device):
+def evaluate_model(data_config_path, model, dataloader, criterion, device, epoch, model_run_date):
     model.eval()
     total_loss = 0
     total, correct = 0, 0
@@ -78,7 +94,7 @@ def evaluate_model(model, dataloader, criterion, device):
 
     with torch.no_grad():
         for inputs, labels in dataloader:
-            inputs, labels = inputs.to(device), labels.to(device)
+            inputs, labels = inputs.to(device, dtype=torch.float32), labels.to(device, dtype=torch.float32)
             outputs = model(inputs)
             total_loss += criterion(outputs, labels).item()
             logits = torch.sigmoid(outputs)
@@ -97,6 +113,20 @@ def evaluate_model(model, dataloader, criterion, device):
 
     accuracy = 100 * correct / total if total > 0 else 0
     average_loss = total_loss / len(dataloader)
+
+    with open(data_config_path) as data_config_file:
+        data_config = json.load(data_config_file)
+
+    with open(os.path.join(data_config["model_results_path"], f"{model.name}_{epoch}_{model_run_date}_evaluarion_results.csv"), mode='w', newline='') as file:
+        writer = csv.writer(file)
+        # Write headers
+        headers = ['Metric', 'Value']
+        writer.writerow(headers)
+        # Write data
+        writer.writerow(['Accuracy', accuracy])
+        writer.writerow(['Average Loss', average_loss])
+        for key, value in metric_accumulator.items():
+            writer.writerow([key, value])
     return accuracy, average_loss, metric_accumulator
 
 
