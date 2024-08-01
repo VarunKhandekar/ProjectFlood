@@ -104,6 +104,7 @@ class ConvLSTMSeparateBranches(nn.Module):
         soil_moisture_out = self.conv2(soil_moisture)
 
         combined = torch.cat([rainfall_out, topology_out, soil_moisture_out], dim=1)
-        output = self.final_conv(combined)
+        output = self.final_conv(combined) #NCXY, where C is 1
+        output = output.squeeze(1) #NXY
         return output
     
