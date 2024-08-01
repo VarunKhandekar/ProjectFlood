@@ -24,7 +24,7 @@ print('Device: {0}'.format(device))
 #     'criterion': 'BCEWithLogitsLoss'
 # }
 
-num_epochs = 100
+num_epochs = 10000
 train_batch_size = 32
 learning_rate = 0.01
 preceding_rainfall_days = 1
