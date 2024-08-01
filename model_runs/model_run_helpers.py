@@ -30,13 +30,13 @@ def get_dataloader(label_file_name: Literal['training_labels_path', 'validation_
 #     return model
 
 
-def train_model(data_config_path: str, model, dataloader, criterion_str, optimizer_type, lr, num_epochs, device, model_run_date):
+def train_model(data_config_path: str, model, dataloader: DataLoader, criterion_type: str, optimizer_type: str, lr, num_epochs: int, device, model_run_date: str):
     
     with open(data_config_path) as data_config_file:
         data_config = json.load(data_config_file)
 
     optimizer = getattr(optim, optimizer_type)(model.parameters(), lr=lr)
-    criterion = getattr(nn, criterion_str)()
+    criterion = getattr(nn, criterion_type)()
 
     model = model.to(device)
     model.train()
@@ -48,21 +48,22 @@ def train_model(data_config_path: str, model, dataloader, criterion_str, optimiz
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
-        print(f'Epoch {epoch+1}/{num_epochs}, Loss: {loss.item():.4f}')
-        if epoch % 100 == 0:
+        if epoch % 1000 == 0:
+            print(f'Epoch {epoch+1}/{num_epochs}, Loss: {loss.item():.4f}')
+        if epoch % 2000 == 0:
             hyperparams = {
                             'learning_rate': lr,
                             'train_batch_size': dataloader.batch_size,
-                            'optimizer_type': optimizer.__class__.__name__,  # Extracting the class name as a string
+                            'optimizer_type': optimizer_type,  # Extracting the class name as a string
                             'num_epochs': num_epochs,
                             'preceding_rainfall_days': model.preceding_rainfall_days,
                             'dropout_prob': model.dropout_prob,
-                            'criterion': criterion.__class__.__name__  # Extracting the class name as a string
+                            'criterion': criterion_type  
                         }
             save_checkpoint(model, optimizer, epoch, os.path.join(data_config["saved_models_path"], f"{model.name}_{epoch}_{model_run_date}.pt"), hyperparams)
     save_checkpoint(model, optimizer, epoch, os.path.join(data_config["saved_models_path"], f"{model.name}_{epoch}_{model_run_date}.pt"), hyperparams)
     return model, epoch
-
+#optimizer.__class__.__name__
 
 def save_checkpoint(model, optimizer, epoch, filepath, hyperparams):
     torch.save({
@@ -101,6 +102,7 @@ def evaluate_model(data_config_path, model, dataloader, criterion_str, device, e
             outputs = model(inputs)
             total_loss += criterion(outputs, labels).item()
             logits = torch.sigmoid(outputs)
+            #TODO ADD CROPPING HERE
             predicted = logits > 0.5
             total += labels.size(0)
             correct += (predicted == labels.to(device)).sum().item()
