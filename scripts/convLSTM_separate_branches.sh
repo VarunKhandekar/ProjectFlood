@@ -3,6 +3,7 @@
 #SBATCH --mail-type=ALL # required to send email notifcations
 #SBATCH --mail-user=vk223
 #SBATCH --partition gpgpuC --gres=gpu:2
+#SBATCH --output=convLSTM_separate_branches_%j.out
 
 export PROJECT_FLOOD_DATA="/homes/vk223/ProjectFlood/static/imperial_data_paths.json"
 export PROJECT_FLOOD_CORE_PATHS="/homes/vk223/ProjectFlood/static/core_paths.json"
