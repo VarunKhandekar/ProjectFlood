@@ -21,5 +21,6 @@
     "validation_labels_path": "/home/vkhandekar/project_flood/data/BangladeshWaterImagesValidation",
     "test_labels_path": "/home/vkhandekar/project_flood/data/BangladeshWaterImagesTest",
     
-    "saved_models_path": "/home/vkhandekar/project_flood/models/saved_models"
+    "saved_models_path": "/home/vkhandekar/project_flood/models/saved_models",
+    "model_results_path": "/home/vkhandekar/project_flood/model_runs/evaluation_results"
 }
