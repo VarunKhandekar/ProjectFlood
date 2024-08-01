@@ -3,23 +3,26 @@ import torch.nn as nn
 import os
 
 class ConvBlock(nn.Module):
-    def __init__(self, in_channels, out_channels):
+    def __init__(self, in_channels, out_channels, dropout_prob):
         super(ConvBlock, self).__init__()
         self.conv = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(),
+            nn.Dropout2d(dropout_prob),
             nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1),
             nn.BatchNorm2d(out_channels),
-            nn.ReLU()
+            nn.ReLU(),
+            nn.Dropout2d(dropout_prob)
         )
     
     def forward(self, x):
         return self.conv(x)
 
 class ConvLSTMCell(nn.Module):
-    def __init__(self, input_dim, hidden_dim, kernel_size, bias=True):
+    def __init__(self, input_dim, hidden_dim, kernel_size, dropout_prob, bias=True,):
         super(ConvLSTMCell, self).__init__()
+        self.dropout = nn.Dropout2d(dropout_prob)
         self.hidden_dim = hidden_dim
         self.conv = nn.Conv2d(
             in_channels=input_dim + hidden_dim,
@@ -33,6 +36,7 @@ class ConvLSTMCell(nn.Module):
         h_cur, c_cur = cur_state
         combined = torch.cat([input_tensor, h_cur], dim=1)
         combined_conv = self.conv(combined)
+        combined_conv = self.dropout(combined_conv)
         cc_i, cc_f, cc_o, cc_g = torch.split(combined_conv, self.hidden_dim, dim=1)
         i = torch.sigmoid(cc_i)
         f = torch.sigmoid(cc_f)
@@ -48,13 +52,14 @@ class ConvLSTMCell(nn.Module):
                 torch.zeros(batch_size, self.hidden_dim, height, width, device=self.conv.weight.device))
 
 class ConvLSTM(nn.Module):
-    def __init__(self, input_dim, hidden_dim, kernel_size, num_layers):
+    def __init__(self, input_dim, hidden_dim, kernel_size, num_layers, dropout_prob):
         super(ConvLSTM, self).__init__()
         self.hidden_dim = hidden_dim
         self.num_layers = num_layers
-        self.cell_list = nn.ModuleList([ConvLSTMCell(input_dim, hidden_dim, kernel_size)])
+        self.dropout_prob = dropout_prob
+        self.cell_list = nn.ModuleList([ConvLSTMCell(input_dim, hidden_dim, kernel_size, self.dropout_prob)])
         for i in range(1, num_layers):
-            self.cell_list.append(ConvLSTMCell(hidden_dim, hidden_dim, kernel_size))
+            self.cell_list.append(ConvLSTMCell(hidden_dim, hidden_dim, kernel_size, self.dropout_prob))
 
     def forward(self, input_tensor):
         b, seq_len, c, h, w = input_tensor.size()
@@ -69,21 +74,22 @@ class ConvLSTM(nn.Module):
             cur_layer_input = torch.stack(output_inner, dim=1)
         return cur_layer_input[:, -1, :, :, :]
 
-class CombinedModel(nn.Module):
-    def __init__(self, preceding_rainfall_days, forecast_rainfall_days):
-        super(CombinedModel, self).__init__()
+class ConvLSTMCombinedModel(nn.Module):
+    def __init__(self, preceding_rainfall_days, forecast_rainfall_days, dropout_prob):
+        super(ConvLSTMCombinedModel, self).__init__()
         self.preceding_rainfall_days = preceding_rainfall_days
         self.forecast_rainfall_days = forecast_rainfall_days
         self.rainfall_sequence_length = preceding_rainfall_days + forecast_rainfall_days
+        self.dropout_prob = dropout_prob
 
-        self.conv1 = ConvBlock(1, 16)
-        self.conv2 = ConvBlock(1, 16)
-        self.convlstm = ConvLSTM(1, 16, kernel_size=3, num_layers=1)
+        self.conv1 = ConvBlock(1, 16, self.dropout_prob)
+        self.conv2 = ConvBlock(1, 16, self.dropout_prob)
+        self.convlstm = ConvLSTM(1, 16, 3, 1, self.dropout_prob)
         self.final_conv = nn.Sequential(
             nn.Conv2d(48, 32, kernel_size=3, padding=1),
             nn.ReLU(),
             nn.Conv2d(32, 1, kernel_size=1),
-            nn.Sigmoid()
+            # nn.Sigmoid() # No sigmoid as BCELogitsLoss as a criterion is more stable
         )
 
     def forward(self, x):

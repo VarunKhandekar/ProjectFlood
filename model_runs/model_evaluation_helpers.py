@@ -8,28 +8,23 @@ def KL_DivLoss(y_pred, y_true):
     kl_loss = torch.nn.KLDivLoss(reduction="batchmean", log_target=True)
     log_input = F.log_softmax(y_pred, dim=1)
     log_target = F.log_softmax(y_true, dim=1)
-    output = kl_loss(log_input, log_target)
-    return output
+    return kl_loss(log_input, log_target)
 
 def RMSELoss(y_pred, y_true):
     mse_loss = torch.nn.MSELoss(reduction="mean")
-    output = torch.sqrt(mse_loss(y_true, y_pred))
-    return output
+    return torch.sqrt(mse_loss(y_true, y_pred))
 
 def MAELoss(y_pred, y_true):
     mae_loss = torch.nn.L1Loss(reduction="mean")
-    output = torch.sqrt(mae_loss(y_true, y_pred))
-    return output  
+    return torch.sqrt(mae_loss(y_true, y_pred))  
 
 def PSNR(y_pred, y_true):
     psnr = torchmetrics.PeakSignalNoiseRatio()
-    output = psnr(y_pred, y_true)
-    return output   
+    return  psnr(y_pred, y_true)   
 
 def SSIM(y_pred, y_true):
     ssim = torchmetrics.StructuralSimilarityIndexMeasure()
-    output = ssim(y_pred, y_true)
-    return output
+    return ssim(y_pred, y_true)
 
 def FID(y_pred, y_true):
     from torchmetrics.image.fid import FrechetInceptionDistance
@@ -37,11 +32,10 @@ def FID(y_pred, y_true):
     fid = FrechetInceptionDistance(feature=64, normalize=True)
     fid.update(y_true, real=True)
     fid.update(y_pred, real=False)
-    output = fid.compute()
-    return output
+    return fid.compute()
 
 def calculate_metrics(y_pred, y_true):
-    fn_list = [
+    metric_list = [
         ("kl_div", KL_DivLoss), 
         ("rmse", RMSELoss), 
         ("mae", MAELoss),
@@ -50,6 +44,6 @@ def calculate_metrics(y_pred, y_true):
         ("fid", FID)
     ]
     metric_dict = {}
-    for fn_name, fn in fn_list:
-        metric_dict[fn_name] = fn(y_pred, y_true)
+    for metric_name, metric_function in metric_list:
+        metric_dict[metric_name] = metric_function(y_pred, y_true)
     return metric_dict
