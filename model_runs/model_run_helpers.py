@@ -38,7 +38,7 @@ def train_model(data_config_path: str, model, dataloader, criterion_str, optimiz
     optimizer = getattr(optim, optimizer_type)(model.parameters(), lr=lr)
     criterion = getattr(nn, criterion_str)()
 
-    model = model.to_device()
+    model = model.to(device)
     model.train()
     for epoch in range(num_epochs):
         for inputs, labels in dataloader:
