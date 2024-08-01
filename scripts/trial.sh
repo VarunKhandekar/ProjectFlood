@@ -4,9 +4,9 @@
 #SBATCH --mail-user=vk223
 #SBATCH --partition gpgpuC --gres=gpu:2
 
-export PROJECT_FLOOD_DATA="homes/vk223/ProjectFlood/static/imperial_data_paths.json"
-export PROJECT_FLOOD_CORE_PATHS="homes/vk223/ProjectFlood/static/core_paths.json"
-export PROJECT_FLOOD_REPO_DIR="homes/vk223/ProjectFlood"
+export PROJECT_FLOOD_DATA="/homes/vk223/ProjectFlood/static/imperial_data_paths.json"
+export PROJECT_FLOOD_CORE_PATHS="/homes/vk223/ProjectFlood/static/core_paths.json"
+export PROJECT_FLOOD_REPO_DIR="/homes/vk223/ProjectFlood"
 source /vol/bitbucket/vk223/project_flood/projectfloodvenv/bin/activate
 source /vol/cuda/11.8.0/setup.sh
 export PYTHONPATH=$PYTHONPATH:${PROJECT_FLOOD_REPO_DIR}/
