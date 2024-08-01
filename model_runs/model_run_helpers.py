@@ -30,12 +30,14 @@ def get_dataloader(label_file_name: Literal['training_labels_path', 'validation_
 #     return model
 
 
-def train_model(data_config_path: str, model, dataloader, criterion, optimizer_type, lr, num_epochs, device, model_run_date):
+def train_model(data_config_path: str, model, dataloader, criterion_str, optimizer_type, lr, num_epochs, device, model_run_date):
     
     with open(data_config_path) as data_config_file:
         data_config = json.load(data_config_file)
 
-    optimizer = optimizer_type(model.parameters(), lr=lr)
+    optimizer = getattr(optim, optimizer_type)(model.parameters(), lr=lr)
+    criterion = getattr(nn, criterion_str)()
+
     model = model.to_device()
     model.train()
     for epoch in range(num_epochs):
@@ -86,11 +88,12 @@ def load_checkpoint(filepath):
 
 
 
-def evaluate_model(data_config_path, model, dataloader, criterion, device, epoch, model_run_date):
+def evaluate_model(data_config_path, model, dataloader, criterion_str, device, epoch, model_run_date):
     model.eval()
     total_loss = 0
     total, correct = 0, 0
     metric_accumulator = {name: 0 for name in ["kl_div", "rmse", "mae", "psnr", "ssim", "fid"]}
+    criterion = getattr(nn, criterion_str)()
 
     with torch.no_grad():
         for inputs, labels in dataloader:
