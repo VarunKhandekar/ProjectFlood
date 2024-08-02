@@ -24,13 +24,13 @@ print('Device: {0}'.format(device))
 #     'criterion': 'BCEWithLogitsLoss'
 # }
 
-num_epochs = 10000
+num_epochs = 10
 train_batch_size = 32
-learning_rate = 0.01
+learning_rate = 0.0001
 preceding_rainfall_days = 1
 dropout_prob=0.0
 optimizer_str = 'Adam'
-criterion_str = 'BCEWithLogitsLoss'
+criterion_str = 'MSELoss'
 
 with open(os.environ["PROJECT_FLOOD_DATA"]) as config_file_path:
     config_data = json.load(config_file_path)
