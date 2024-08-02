@@ -20,7 +20,7 @@ class ConvBlock(nn.Module):
         return self.conv(x)
 
 class ConvLSTMCell(nn.Module):
-    def __init__(self, input_dim, hidden_dim, kernel_size, dropout_prob, bias=True,):
+    def __init__(self, input_dim, hidden_dim, kernel_size, dropout_prob, bias=True):
         super(ConvLSTMCell, self).__init__()
         self.dropout = nn.Dropout2d(dropout_prob)
         self.hidden_dim = hidden_dim
@@ -37,7 +37,7 @@ class ConvLSTMCell(nn.Module):
         combined = torch.cat([input_tensor, h_cur], dim=1)
         combined_conv = self.conv(combined)
         combined_conv = self.dropout(combined_conv)
-        cc_i, cc_f, cc_o, cc_g = torch.split(combined_conv, self.hidden_dim, dim=1)
+        cc_i, cc_f, cc_o, cc_g = torch.split(combined_conv, self.hidden_dim, dim=1) #split combined conv into 4 (each has as many channels as self.hidden_dim)
         i = torch.sigmoid(cc_i)
         f = torch.sigmoid(cc_f)
         o = torch.sigmoid(cc_o)
@@ -58,7 +58,7 @@ class ConvLSTM(nn.Module):
         self.num_layers = num_layers
         self.dropout_prob = dropout_prob
         self.cell_list = nn.ModuleList([ConvLSTMCell(input_dim, hidden_dim, kernel_size, self.dropout_prob)])
-        for i in range(1, num_layers):
+        for _ in range(1, num_layers):
             self.cell_list.append(ConvLSTMCell(hidden_dim, hidden_dim, kernel_size, self.dropout_prob))
 
     def forward(self, input_tensor):

@@ -40,7 +40,7 @@ def train_model(data_config_path: str, model, dataloader: DataLoader, criterion_
 
     model = model.to(device)
     model.train()
-    for epoch in range(num_epochs):
+    for epoch in range(1, num_epochs+1):
         for inputs, labels in dataloader:
             inputs, labels = inputs.to(device, dtype=torch.float32), labels.to(device, dtype=torch.float32)
             optimizer.zero_grad()
@@ -48,9 +48,9 @@ def train_model(data_config_path: str, model, dataloader: DataLoader, criterion_
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
-        if epoch % 1000 == 0:
+        if epoch % 1 == 0:
             print(f'Epoch {epoch+1}/{num_epochs}, Loss: {loss.item():.4f}')
-        if epoch % 2000 == 0:
+        if epoch % 1 == 0:
             hyperparams = {
                             'learning_rate': lr,
                             'train_batch_size': dataloader.batch_size,
@@ -90,6 +90,7 @@ def load_checkpoint(filepath):
 
 
 def evaluate_model(data_config_path, model, dataloader, criterion_str, device, epoch, model_run_date):
+    model = model.to(device)
     model.eval()
     total_loss = 0
     total, correct = 0, 0
