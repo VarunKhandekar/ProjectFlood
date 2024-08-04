@@ -30,7 +30,7 @@ learning_rate = 0.0001
 preceding_rainfall_days = 1
 dropout_prob=0.0
 optimizer_str = 'Adam'
-criterion_str = 'MSELoss'
+criterion_str = 'BCEWithLogitsLoss'
 
 with open(os.environ["PROJECT_FLOOD_DATA"]) as config_file_path:
     config_data = json.load(config_file_path)
