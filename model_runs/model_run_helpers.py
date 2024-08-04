@@ -7,6 +7,7 @@ from torch.utils.data import DataLoader
 from dataloaders.convLSTM_dataloader import *
 from models.convLSTM_separate_branches import *
 from model_runs.model_evaluation_helpers import *
+from visualisations.visualisation_helpers import *
 
 
 def get_dataloader(label_file_name: Literal['training_labels_path', 'validation_labels_path', 'test_labels_path'], 
@@ -48,9 +49,12 @@ def train_model(data_config_path: str, model, dataloader: DataLoader, criterion_
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
-        if epoch % 1 == 0:
+            # last_outputs, last_labels = outputs, labels
+            last_outputs, last_labels = torch.sigmoid(outputs), labels
+
+        if epoch % 100 == 0:
             print(f'Epoch {epoch+1}/{num_epochs}, Loss: {loss.item():.4f}')
-        if epoch % 1 == 0:
+        if epoch % 100 == 0:
             hyperparams = {
                             'learning_rate': lr,
                             'train_batch_size': dataloader.batch_size,
@@ -62,6 +66,16 @@ def train_model(data_config_path: str, model, dataloader: DataLoader, criterion_
                         }
             save_checkpoint(model, optimizer, epoch, os.path.join(data_config["saved_models_path"], f"{model.name}_{epoch}_{model_run_date}.pt"), hyperparams)
     save_checkpoint(model, optimizer, epoch, os.path.join(data_config["saved_models_path"], f"{model.name}_{epoch}_{model_run_date}.pt"), hyperparams)
+
+    if last_outputs is not None and last_labels is not None:
+        # Select only 8 samples from the last batch
+        selected_outputs = last_outputs[:4]
+        selected_labels = last_labels[:4]
+
+        # Save images of model output vs label
+        plot_filename = os.path.join(data_config["plots_path"], f"output_vs_label_{model.name}_{model_run_date}.png")
+        plot_model_output_vs_label(selected_outputs, selected_labels, plot_filename)
+
     return model, epoch
 #optimizer.__class__.__name__
 
