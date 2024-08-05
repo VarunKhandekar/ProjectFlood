@@ -60,3 +60,17 @@ class FloodPredictionDataset(Dataset):
         
         return image_tensor, label_tensor
     
+
+class SubsetWithTransform(Dataset):
+    def __init__(self, subset, transform=None):
+        self.subset = subset
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.subset)
+
+    def __getitem__(self, idx):
+        image_tensors, label_tensor = self.subset[idx]
+        if self.transform:
+            image_tensors, label_tensor = self.transform(image_tensors, label_tensor)
+        return image_tensors, label_tensor
