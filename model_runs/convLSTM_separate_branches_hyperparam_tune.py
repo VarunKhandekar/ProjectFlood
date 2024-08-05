@@ -125,18 +125,18 @@ def objective(trial):
 
         # PLOT EXAMPLE IMAGES FROM TRAINING
         # Select only 4 samples from the last batch
-        selected_outputs = last_outputs[:4]
-        selected_labels = last_labels[:4]
-        image_examples_filename = os.path.join(data_config["training_plots_path"], f"outputs_vs_labels_{model.name}.png")
-        plot_model_output_vs_label(selected_outputs, selected_labels, image_examples_filename)
+        # selected_outputs = last_outputs[:4]
+        # selected_labels = last_labels[:4]
+        # image_examples_filename = os.path.join(data_config["training_plots_path"], f"outputs_vs_labels_{model.name}.png")
+        # plot_model_output_vs_label(selected_outputs, selected_labels, image_examples_filename, hyperparams)
         
         # PLOT LOSS CHART
-        losses = []
-        losses.append(training_losses)
-        if not validation_losses:
-            losses.append(validation_losses)
-        loss_filename = os.path.join(data_config["loss_plots_path"], f"losschart_{model.name}.png")
-        plot_loss_chart(losses, epochs, loss_filename)
+        # losses = []
+        # losses.append(training_losses)
+        # if not validation_losses:
+        #     losses.append(validation_losses)
+        # loss_filename = os.path.join(data_config["loss_plots_path"], f"losschart_{model.name}.png")
+        # plot_loss_chart(losses, epochs, loss_filename)
 
         return sum(validation_losses) / len(validation_losses)
 
