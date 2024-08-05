@@ -12,7 +12,7 @@ from model_runs.model_evaluation_helpers import *
 from visualisations.visualisation_helpers import *
 
 
-def get_dataloader(label_file_name: Literal['training_labels_path', 'validation_labels_path', 'test_labels_path'], 
+def get_dataloader(label_file_name: Literal['training_labels_path', 'validation_labels_path', 'test_labels_path', 'training_validation_combo_path'], 
                    resolution: int, preceding_rainfall_days: int, forecast_rainfall_days: int, transform, 
                    batch_size: int, shuffle: bool, num_workers: int):
     dataset = FloodPredictionDataset(os.environ["PROJECT_FLOOD_DATA"], label_file_name, resolution, preceding_rainfall_days, forecast_rainfall_days, transform)
@@ -102,7 +102,7 @@ def train_model(data_config_path: str, model,  criterion_type: str, optimizer_ty
             print(f'Epoch {epoch+1}/{num_epochs}, Loss: {loss.item():.4f}')
 
         # Save model snapshot
-        if epoch % 100 == 0:
+        if epoch % 1000 == 0:
             save_checkpoint(model, optimizer, epoch, os.path.join(data_config["saved_models_path"], f"{model.name}_{epoch}.pt"), hyperparams)
     
     # Save final model            
