@@ -30,7 +30,7 @@ def objective(trial):
     num_epochs = trial.suggest_categorical('num_epochs', [i for i in range(1000, 5000+1, 1000)])
     train_batch_size = trial.suggest_categorical('train_batch_size', [16, 32, 64])
     learning_rate = trial.suggest_loguniform('learning_rate', 1e-5, 1e-2)
-    preceding_rainfall_days = trial.suggest_categorical('train_batch_size', [i for i in range(1, 7+1)])
+    preceding_rainfall_days = trial.suggest_categorical('preceding_rainfall_days', [i for i in range(1, 7+1)])
     dropout_prob = trial.suggest_uniform('dropout_prob', 0.0, 0.5)
     output_channels = trial.suggest_int('output_channels', 8, 32)
     conv_block_layers = trial.suggest_int('conv_block_layers', 1, 4)
