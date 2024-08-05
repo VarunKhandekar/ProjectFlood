@@ -77,6 +77,7 @@ def split_training_test(data_config_path: str, resolution: int, flood_dates_file
 
     return train_files, val_files, test_files
 
+
 def save_files(data_config_path: str, resolution: int, files: list, dataset_type: Literal['training', 'validation', 'test']):
     """
     Save files to their respective directories for training, validation, or testing.
@@ -118,6 +119,27 @@ def save_files(data_config_path: str, resolution: int, files: list, dataset_type
         shutil.copy(source, destination)
 
 
+def combine_training_and_validation(data_config_path: str, resolution: int):
+    with open(data_config_path) as data_config_file:
+        data_config = json.load(data_config_file)
+    target_directory = f"{data_config['training_validation_combo_path']}_{resolution}_{resolution}"
+
+    source_directories = [f"{data_config['training_labels_path']}_{resolution}_{resolution}", 
+                          f"{data_config['validation_labels_path']}_{resolution}_{resolution}"]
+
+    # remove existing directory and create new one
+    if os.path.exists(target_directory):
+        shutil.rmtree(target_directory)  # Removes the directory and all its contents
+    os.mkdir(target_directory)
+
+
+    for sd in source_directories:
+        for f in os.listdir(sd):
+            source = os.path.join(sd, f)
+            destination = os.path.join(target_directory, f)
+            shutil.copy(source, destination)
+
+
 if __name__ == "__main__":
     # 60-20-20 SPLIT
     random.seed(42)
@@ -136,4 +158,5 @@ if __name__ == "__main__":
     save_files(data_config_file, resolution, train_files,'training')
     save_files(data_config_file, resolution, val_files, 'validation')
     save_files(data_config_file, resolution, test_files, 'test')
+    combine_training_and_validation(os.environ["PROJECT_FLOOD_DATA"], resolution)
     

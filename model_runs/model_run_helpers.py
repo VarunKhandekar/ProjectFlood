@@ -1,11 +1,11 @@
 import torch
 import torch.optim as optim
 import csv
+import datetime
 from typing import Literal
-from datetime import date
 from torch.utils.data import DataLoader
 from dataloaders.convLSTM_dataloader import *
-from models.convLSTM_separate_branches import *
+from models.ConvLSTMSeparateBranches import *
 from model_runs.model_evaluation_helpers import *
 from visualisations.visualisation_helpers import *
 
@@ -31,18 +31,45 @@ def get_dataloader(label_file_name: Literal['training_labels_path', 'validation_
 #     return model
 
 
-def train_model(data_config_path: str, model, dataloader: DataLoader, criterion_type: str, optimizer_type: str, lr, num_epochs: int, device, model_run_date: str):
-    
+def generate_model_name(base_name, date_today, **kwargs):
+    # EXAMPLE: ConvLSTMSeparateBranches_num_epochs10_train_batch_size32_learning_rate0p0001_20240805
+    # Replace periods in hyperparameter values with 'p'
+    hyperparams_str = "_".join(f"{key}{str(value).replace('.', 'p')}" for key, value in kwargs.items())
+    model_name = f"{base_name}_{hyperparams_str}_{date_today}"
+    return model_name
+
+
+def train_model(data_config_path: str, model,  criterion_type: str, optimizer_type: str, lr, num_epochs: int, device, plot_training_images: bool, plot_losses: bool, train_dataloader: DataLoader, val_dataloader: DataLoader = None):
+
+    hyperparams = {
+        'num_epochs': num_epochs,
+        'train_batch_size': train_dataloader.batch_size,
+        'learning_rate': lr,
+        'preceding_rainfall_days': model.preceding_rainfall_days,
+        'dropout_prob': model.dropout_prob,
+        'output_channels': model.output_channels,
+        'conv_block_layers': model.conv_block_layers,
+        'convLSTM_layers': model.convLSTM_layers,
+        'optimizer_type': optimizer_type,
+        'criterion': criterion_type  
+    }
+
     with open(data_config_path) as data_config_file:
         data_config = json.load(data_config_file)
 
     optimizer = getattr(optim, optimizer_type)(model.parameters(), lr=lr)
-    criterion = getattr(nn, criterion_type)()
+    criterion = getattr(nn, criterion_type)() #Default for BCELogitsLoss is mean reduction over the batch in question
 
     model = model.to(device)
-    model.train()
+    training_losses = []
+    validation_losses = []
+    epochs = []
     for epoch in range(1, num_epochs+1):
-        for inputs, labels in dataloader:
+        # TRAINING
+        model.train()
+        training_epoch_loss = 0.0
+        num_batches = 0
+        for inputs, labels in train_dataloader:
             inputs, labels = inputs.to(device, dtype=torch.float32), labels.to(device, dtype=torch.float32)
             optimizer.zero_grad()
             outputs = model(inputs)
@@ -50,38 +77,82 @@ def train_model(data_config_path: str, model, dataloader: DataLoader, criterion_
             loss.backward()
             optimizer.step()
             # last_outputs, last_labels = outputs, labels
-            last_outputs, last_labels = torch.sigmoid(outputs), labels
+            last_outputs, last_labels = torch.sigmoid(outputs), labels # apply sigmoid for charting purposes
+
+            training_epoch_loss += loss.item()
+            num_batches += 1
+
+        # Save values down for loss chart plotting
+        training_epoch_average_loss = training_epoch_loss/num_batches
+        training_losses.append(training_epoch_average_loss)
+        epochs.append(epoch)
+
+
+        # COLLECT VALIDATION LOSSES
+        if val_dataloader: # Check if we even want validation losses
+            validation_epoch_average_loss = validate_model(model, val_dataloader, criterion, device)
+            validation_losses.append(validation_epoch_average_loss)
+            # model.eval()
+            # with torch.no_grad():  # Disable gradient computation during validation
+            #     validation_epoch_loss = 0.0
+            #     num_batches = 0
+            #     for inputs, labels in val_dataloader:
+            #         inputs, labels = inputs.to(device, dtype=torch.float32), labels.to(device, dtype=torch.float32)
+            #         outputs = model(inputs)
+            #         loss = criterion(outputs, labels)
+
+            #         validation_epoch_loss += loss.item()
+            #         num_batches += 1
+
+            #     validation_epoch_average_loss = validation_epoch_loss / num_batches
+            #     validation_losses.append(validation_epoch_average_loss)
 
         if epoch % 100 == 0:
             print(f'Epoch {epoch+1}/{num_epochs}, Loss: {loss.item():.4f}')
-        if epoch % 100 == 0:
-            hyperparams = {
-                            'learning_rate': lr,
-                            'train_batch_size': dataloader.batch_size,
-                            'optimizer_type': optimizer_type,  # Extracting the class name as a string
-                            'num_epochs': num_epochs,
-                            'preceding_rainfall_days': model.preceding_rainfall_days,
-                            'dropout_prob': model.dropout_prob,
-                            'criterion': criterion_type  
-                        }
-            save_checkpoint(model, optimizer, epoch, os.path.join(data_config["saved_models_path"], f"{model.name}_{epoch}_{model_run_date}.pt"), hyperparams)
-    save_checkpoint(model, optimizer, epoch, os.path.join(data_config["saved_models_path"], f"{model.name}_{epoch}_{model_run_date}.pt"), hyperparams)
 
-    if last_outputs is not None and last_labels is not None:
-        # Select only 8 samples from the last batch
+        # Save model snapshot
+        if epoch % 100 == 0:
+            save_checkpoint(model, optimizer, epoch, os.path.join(data_config["saved_models_path"], f"{model.name}_{epoch}.pt"), hyperparams)
+    
+    # Save final model            
+    save_checkpoint(model, optimizer, epoch, os.path.join(data_config["saved_models_path"], f"{model.name}_{epoch}.pt"), hyperparams)
+
+    # PLOT EXAMPLE IMAGES ON TRAINING
+    # Select only 4 samples from the last batch
+    if plot_training_images:
         selected_outputs = last_outputs[:4]
         selected_labels = last_labels[:4]
-
-        # Save images of model output vs label
-        plot_filename = os.path.join(data_config["plots_path"], f"output_vs_label_{model.name}_{model_run_date}.png")
-        plot_model_output_vs_label(selected_outputs, selected_labels, plot_filename)
+        image_examples_filename = os.path.join(data_config["training_plots_path"], f"outputs_vs_labels_{model.name}.png")
+        plot_model_output_vs_label(selected_outputs, selected_labels, image_examples_filename)
+    
+    # PLOT LOSS CHART
+    if plot_losses:
+        losses = []
+        losses.append(training_losses)
+        if not validation_losses:
+            losses.append(validation_losses)
+        loss_filename = os.path.join(data_config["loss_plots_path"], f"losschart_{model.name}.png")
+        plot_loss_chart(losses, epochs, loss_filename)
 
     return model, epoch
 #optimizer.__class__.__name__
 
+
+def validate_model(model, dataloader, criterion, device):
+    model.eval()
+    total_loss = 0
+    with torch.no_grad():
+        for inputs, targets in dataloader:
+            inputs, targets = inputs.to(device, dtype=torch.float32), targets.to(device, dtype=torch.float32)
+            outputs = model(inputs)
+            loss = criterion(outputs, targets)
+            total_loss += loss.item()
+    return total_loss / len(dataloader)
+
+
 def save_checkpoint(model, optimizer, epoch, filepath, hyperparams):
     torch.save({
-        'model_type': model.name,
+        'model_type': model.__class__.__name__,
         'epoch': epoch,
         'model_state_dict': model.state_dict(),
         'optimizer_state_dict': optimizer.state_dict(),
@@ -92,14 +163,18 @@ def save_checkpoint(model, optimizer, epoch, filepath, hyperparams):
 def load_checkpoint(filepath):
     checkpoint = torch.load(filepath)
     hyperparams = checkpoint['hyperparams']
-    if checkpoint['model_type'] == "convLSTM_separate_branches":
+    if checkpoint['model_type'] == "ConvLSTMSeparateBranches":
         model = ConvLSTMSeparateBranches(hyperparams['preceding_rainfall_days'], 1,  hyperparams['dropout_prob'])
+        #TODO add the name as an attribute here?
     optimizer = getattr(optim, hyperparams['optimizer_type'])(model.parameters(), lr=hyperparams['learning_rate'])
 
     #Set up model and optimizer with values from that checkpoint
     model.load_state_dict(checkpoint['model_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
     return model, optimizer, checkpoint['epoch'], hyperparams
+
+
+
 
 
 
@@ -148,5 +223,4 @@ def evaluate_model(data_config_path, model, dataloader, criterion_str, device, e
         for key, value in metric_accumulator.items():
             writer.writerow([key, value])
     return accuracy, average_loss, metric_accumulator
-
 

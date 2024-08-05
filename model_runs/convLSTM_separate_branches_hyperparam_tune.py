@@ -1,0 +1,90 @@
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import os
+import optuna
+from optuna.integration import PyTorchLightningPruningCallback
+from sklearn.model_selection import KFold
+from torch.utils.data import DataLoader
+from dataloaders.convLSTM_dataloader import *
+from dataloaders.custom_image_transforms import *
+from models.ConvLSTMSeparateBranches import *
+from model_runs.model_run_helpers import *
+
+
+# CONFIGURATION AND HYPERPARAMETERS
+model_run_date = datetime.date.today().strftime(r'%Y%m%d')
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+print('Device: {0}'.format(device))
+
+with open(os.environ["PROJECT_FLOOD_DATA"]) as config_file_path:
+    config_data = json.load(config_file_path)
+
+if not os.path.exists(config_data["saved_models_path"]):
+    os.makedirs(config_data["saved_models_path"])
+
+
+def objective(trial):
+
+    num_epochs = trial.suggest_int('num_epochs', 5, 20)
+    train_batch_size = trial.suggest_categorical('train_batch_size', [16, 32, 64])
+    learning_rate = trial.suggest_loguniform('learning_rate', 1e-5, 1e-2)
+    preceding_rainfall_days = trial.suggest_categorical('train_batch_size', [i for i in range(1, 7+1)])
+    dropout_prob = trial.suggest_uniform('dropout_prob', 0.0, 0.5)
+    output_channels = trial.suggest_int('output_channels', 8, 32)
+    conv_block_layers = trial.suggest_int('conv_block_layers', 1, 4)
+    convLSTM_layers = trial.suggest_int('convLSTM_layers', 1, 3)
+    optimizer_str = trial.suggest_categorical('optimizer_str', ['Adam', 'SGD'])
+    criterion_str = 'BCEWithLogitsLoss'
+
+
+    hyperparams = {
+        'num_epochs': num_epochs,
+        'trainbatchsize': train_batch_size,
+        'lr': learning_rate,
+        'precedingrainfalldays': preceding_rainfall_days,
+        'dropoutprob': dropout_prob,
+        'outputchannels': output_channels,
+        'convblocklayers': conv_block_layers,
+        'convLSTMlayers': convLSTM_layers,
+        'optimizer': optimizer_str,
+        'criterion': criterion_str
+    }
+
+
+
+
+
+    # Build the model
+    model = ConvLSTMSeparateBranches(preceding_rainfall_days, 1, 16, 2, dropout_prob)
+    model = model.to(device)
+    params = list(model.parameters())
+
+    model_name = generate_model_name(model.__class__.__name__, model_run_date, **hyperparams)
+    model.name = model_name
+
+    # optimizer = getattr(optim, hyperparams['optimizer_type'])(model.parameters(), lr=learning_rate)
+    # optimizer = optim.Adam(params, lr=learning_rate)
+    # criterion = nn.BCEWithLogitsLoss()
+
+    # Set up dataloaders
+    validation_batch_size = 16
+    test_batch_size = 1
+
+    train_dataloader = get_dataloader("training_labels_path", resolution=256, preceding_rainfall_days=preceding_rainfall_days, forecast_rainfall_days=1, 
+                                    transform=train_transform, batch_size=train_batch_size, shuffle=True, num_workers=4)
+    val_dataloader = get_dataloader("validation_labels_path", resolution=256, preceding_rainfall_days=preceding_rainfall_days, forecast_rainfall_days=1, 
+                                    transform=train_transform, batch_size=validation_batch_size, shuffle=False, num_workers=4)
+    test_dataloader = get_dataloader("test_labels_path", resolution=256, preceding_rainfall_days=preceding_rainfall_days, forecast_rainfall_days=1, 
+                                    transform=None, batch_size=test_batch_size, shuffle=False, num_workers=4)
+
+
+    # Train the model
+    model, end_epoch = train_model(os.environ['PROJECT_FLOOD_DATA'], model, criterion_str, optimizer_str, learning_rate, num_epochs, device, True, True, train_dataloader, val_dataloader)
+
+
+# Evaluate the model
+
+
+# accuracy, average_loss, metrics = evaluate_model(os.environ['PROJECT_FLOOD_DATA'], model, test_dataloader, criterion_str, device, end_epoch, model_run_date)
