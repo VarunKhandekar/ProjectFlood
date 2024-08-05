@@ -35,7 +35,8 @@ def objective(trial):
     output_channels = trial.suggest_int('output_channels', 8, 32)
     conv_block_layers = trial.suggest_int('conv_block_layers', 1, 4)
     convLSTM_layers = trial.suggest_int('convLSTM_layers', 1, 3)
-    optimizer_str = trial.suggest_categorical('optimizer_str', ['Adam', 'SGD'])
+    # optimizer_str = trial.suggest_categorical('optimizer_str', ['Adam', 'SGD'])
+    optimizer_str = trial.suggest_categorical('optimizer_str', ['Adam'])
     criterion_str = trial.suggest_categorical('criterion_str', ['BCEWithLogitsLoss'])
 
     hyperparams = {
