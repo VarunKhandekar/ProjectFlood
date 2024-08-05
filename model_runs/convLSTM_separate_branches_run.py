@@ -51,7 +51,7 @@ if not os.path.exists(config_data["saved_models_path"]):
     os.makedirs(config_data["saved_models_path"])
 
 # Build the model
-model = ConvLSTMSeparateBranches(preceding_rainfall_days, 1, 16, 2, dropout_prob)
+model = ConvLSTMSeparateBranches(preceding_rainfall_days, 1, 16, 2, 1, dropout_prob)
 model = model.to(device)
 # params = list(model.parameters())
 
