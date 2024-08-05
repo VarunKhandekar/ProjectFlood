@@ -61,7 +61,7 @@ class FloodPredictionDataset(Dataset):
         return image_tensor, label_tensor
     
 
-class SubsetWithTransform(Dataset):
+class SubsetWithTransform(Dataset): #THIS IS NEEDED WHEN TRYING TO SEPARATELY APPLY TRANSFORMS TO TRAINING AND VALIDATION
     def __init__(self, subset, transform=None):
         self.subset = subset
         self.transform = transform
@@ -72,5 +72,9 @@ class SubsetWithTransform(Dataset):
     def __getitem__(self, idx):
         image_tensors, label_tensor = self.subset[idx]
         if self.transform:
-            image_tensors, label_tensor = self.transform(image_tensors, label_tensor)
+            #image_tensors needs to be converted into a dict of single images
+            image_tensor_dict = {str(i): [image_tensors[i]] for i in range(image_tensors.shape[0])}
+            image_tensors, label_tensor = self.transform(image_tensor_dict, label_tensor) #apply transformations
+            prepared_tensors = [prepare_tensors(image_tensors[i]) for i in image_tensor_dict.keys()]
+            image_tensors = torch.cat(prepared_tensors, dim=0)     
         return image_tensors, label_tensor
