@@ -117,10 +117,11 @@ def train_model(data_config_path: str, model,  criterion_type: str, optimizer_ty
         plot_model_output_vs_label(selected_outputs, selected_labels, image_examples_filename)
     
     # PLOT LOSS CHART
+    print(validation_losses)
     if plot_losses:
         losses = []
         losses.append(training_losses)
-        if not validation_losses:
+        if validation_losses:
             losses.append(validation_losses)
         loss_filename = os.path.join(data_config["loss_plots_path"], f"losschart_{model.name}.png")
         plot_loss_chart(losses, epochs, loss_filename, hyperparams)
