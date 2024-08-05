@@ -1,23 +1,27 @@
 import torch
 import torch.nn as nn
-import os
+
 
 class ConvBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, dropout_prob):
+    def __init__(self, in_channels, out_channels, num_layers, dropout_prob):
         super(ConvBlock, self).__init__()
-        self.conv = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1),
-            nn.BatchNorm2d(out_channels),
-            nn.ReLU(),
-            nn.Dropout2d(dropout_prob),
-            nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1),
-            nn.BatchNorm2d(out_channels),
-            nn.ReLU(),
-            nn.Dropout2d(dropout_prob)
-        )
+
+        layers = []
+        for _ in range(num_layers):
+            layers.extend([
+                nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1),
+                nn.BatchNorm2d(out_channels),
+                nn.ReLU(),
+                nn.Dropout2d(dropout_prob)
+            ])
+            in_channels = out_channels # Update layers for next round
+        
+        self.conv = nn.Sequential(*layers)
+
     
     def forward(self, x):
         return self.conv(x)
+
 
 class ConvLSTMCell(nn.Module):
     def __init__(self, input_dim, hidden_dim, kernel_size, dropout_prob, bias=True):
@@ -51,6 +55,7 @@ class ConvLSTMCell(nn.Module):
         return (torch.zeros(batch_size, self.hidden_dim, height, width, device=self.conv.weight.device),
                 torch.zeros(batch_size, self.hidden_dim, height, width, device=self.conv.weight.device))
 
+
 class ConvLSTM(nn.Module):
     def __init__(self, input_dim, hidden_dim, kernel_size, num_layers, dropout_prob):
         super(ConvLSTM, self).__init__()
@@ -72,24 +77,26 @@ class ConvLSTM(nn.Module):
             output_inner = []
             for t in range(seq_len):
                 h, c = self.cell_list[layer_idx](cur_layer_input[:, t, :, :, :], (h, c)) #call the convLSTM cell image by image in the sequence
-                output_inner.append(h) #h is of batch_size x 16 x 256 x 256
+                output_inner.append(h) #h is of batch_size x self.hidden_dim x 256 x 256
             cur_layer_input = torch.stack(output_inner, dim=1)
         return cur_layer_input[:, -1, :, :, :] #extract the last image from the convLSTM cells
 
+
 class ConvLSTMSeparateBranches(nn.Module):
-    def __init__(self, preceding_rainfall_days, forecast_rainfall_days, dropout_prob):
+    def __init__(self, preceding_rainfall_days, forecast_rainfall_days, output_channels, conv_block_layers, convLSTM_layers, dropout_prob):
         super(ConvLSTMSeparateBranches, self).__init__()
         self.preceding_rainfall_days = preceding_rainfall_days
         self.forecast_rainfall_days = forecast_rainfall_days
         self.rainfall_sequence_length = preceding_rainfall_days + forecast_rainfall_days
         self.dropout_prob = dropout_prob
-        self.name = "convLSTM_separate_branches"
+        self.name = None
 
-        output_channels = 16
-        convLSTM_layers = 1
-        self.conv1 = ConvBlock(1, output_channels, self.dropout_prob) #1 input dimension, 16 output (i.e. image gets fatter after the convolutions)
-        self.conv2 = ConvBlock(1, output_channels, self.dropout_prob)
-        self.convlstm = ConvLSTM(1, output_channels, 5, convLSTM_layers, self.dropout_prob)
+        self.output_channels = output_channels
+        self.conv_block_layers = conv_block_layers
+        self.convLSTM_layers = convLSTM_layers
+        self.conv1 = ConvBlock(1, self.output_channels, self.conv_block_layers, self.dropout_prob) #1 input dimension, 16 output (i.e. image gets fatter after the convolutions)
+        self.conv2 = ConvBlock(1, self.output_channels, self.conv_block_layers, self.dropout_prob)
+        self.convlstm = ConvLSTM(1, self.output_channels, 5, self.convLSTM_layers, self.dropout_prob)
 
         final_conv_kernel_size = 5
         self.final_conv = nn.Sequential(
