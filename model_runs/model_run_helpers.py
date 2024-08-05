@@ -123,7 +123,7 @@ def train_model(data_config_path: str, model,  criterion_type: str, optimizer_ty
         if not validation_losses:
             losses.append(validation_losses)
         loss_filename = os.path.join(data_config["loss_plots_path"], f"losschart_{model.name}.png")
-        plot_loss_chart(losses, epochs, loss_filename)
+        plot_loss_chart(losses, epochs, loss_filename, hyperparams)
 
     return model, epoch
 
