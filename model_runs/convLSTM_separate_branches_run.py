@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 import os
 from torch.utils.data import DataLoader
-from dataloaders.convLSTM_dataloader import *
+from dataloaders.convLSTM_dataset import *
 from dataloaders.custom_image_transforms import *
 from models.ConvLSTMSeparateBranches import *
 from model_runs.model_run_helpers import *
@@ -53,7 +53,7 @@ if not os.path.exists(config_data["saved_models_path"]):
 # Build the model
 model = ConvLSTMSeparateBranches(preceding_rainfall_days, 1, 16, 2, dropout_prob)
 model = model.to(device)
-params = list(model.parameters())
+# params = list(model.parameters())
 
 model_name = generate_model_name(model.__class__.__name__, model_run_date, **hyperparams)
 model.name = model_name

@@ -4,7 +4,9 @@ import csv
 import datetime
 from typing import Literal
 from torch.utils.data import DataLoader
-from dataloaders.convLSTM_dataloader import *
+# import optuna
+# from optuna.integration import PyTorchLightningPruningCallback
+from dataloaders.convLSTM_dataset import *
 from models.ConvLSTMSeparateBranches import *
 from model_runs.model_evaluation_helpers import *
 from visualisations.visualisation_helpers import *
@@ -18,19 +20,6 @@ def get_dataloader(label_file_name: Literal['training_labels_path', 'validation_
     return dataloader
 
 
-# def build_model(model_type: Literal['convLSTM_separate_branches', 'vae', 'ddpm'], preceding_rainfall_days: int, forecast_rainfall_days: int, dropout_prob: float = 0.0):
-#     if model_type == 'convLSTM_separate_branches':
-#         model = ConvLSTMCombinedModel(preceding_rainfall_days, forecast_rainfall_days, dropout_prob)
-    
-#     elif model_type == 'vae':
-#         pass
-    
-#     elif model_type == 'ddpm':
-#         pass
-    
-#     return model
-
-
 def generate_model_name(base_name, date_today, **kwargs):
     # EXAMPLE: ConvLSTMSeparateBranches_num_epochs10_train_batch_size32_learning_rate0p0001_20240805
     # Replace periods in hyperparameter values with 'p'
@@ -39,7 +28,9 @@ def generate_model_name(base_name, date_today, **kwargs):
     return model_name
 
 
-def train_model(data_config_path: str, model,  criterion_type: str, optimizer_type: str, lr, num_epochs: int, device, plot_training_images: bool, plot_losses: bool, train_dataloader: DataLoader, val_dataloader: DataLoader = None):
+def train_model(data_config_path: str, model,  criterion_type: str, optimizer_type: str, lr, num_epochs: int, device, 
+                plot_training_images: bool, plot_losses: bool, 
+                train_dataloader: DataLoader, val_dataloader: DataLoader = None):
 
     hyperparams = {
         'num_epochs': num_epochs,
@@ -135,7 +126,6 @@ def train_model(data_config_path: str, model,  criterion_type: str, optimizer_ty
         plot_loss_chart(losses, epochs, loss_filename)
 
     return model, epoch
-#optimizer.__class__.__name__
 
 
 def validate_model(model, dataloader, criterion, device):
@@ -172,10 +162,6 @@ def load_checkpoint(filepath):
     model.load_state_dict(checkpoint['model_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
     return model, optimizer, checkpoint['epoch'], hyperparams
-
-
-
-
 
 
 def evaluate_model(data_config_path, model, dataloader, criterion_str, device, epoch, model_run_date):

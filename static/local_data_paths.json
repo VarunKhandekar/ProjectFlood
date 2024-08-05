@@ -26,5 +26,7 @@
     "model_results_path": "/home/vkhandekar/project_flood/model_runs/evaluation_results",
 
     "training_images_path": "/home/vkhandekar/project_flood/visualisations/training_images",
-    "loss_plots_path": "/home/vkhandekar/project_flood/visualisations/loss_charts"
+    "loss_plots_path": "/home/vkhandekar/project_flood/visualisations/loss_charts",
+
+    "hyperparam_tuning": "/home/vkhandekar/project_flood/model_runs/hyperparam_selection"
 }

@@ -26,5 +26,7 @@
     "model_results_path": "/homes/vk223/ProjectFlood/model_runs/evaluation_results",
 
     "training_images_path": "/homes/vk223/ProjectFlood/visualisations/training_images",
-    "loss_plots_path": "/homes/vk223/ProjectFlood/visualisations/loss_charts"
+    "loss_plots_path": "/homes/vk223/ProjectFlood/visualisations/loss_charts",
+
+    "hyperparam_tuning": "/homes/vk223/ProjectFlood/model_runs/hyperparam_selection"
 }
