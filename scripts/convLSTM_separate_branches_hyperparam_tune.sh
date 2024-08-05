@@ -1,8 +1,7 @@
 #!/bin/bash
-#SBATCH --gres=gpu:1
+#SBATCH --gres=gpu:teslaa40:1
 #SBATCH --mail-type=ALL # required to send email notifcations
 #SBATCH --mail-user=vk223
-#SBATCH --partition gpgpuC --gres=gpu:1
 #SBATCH --output=convLSTM_sep_branch_hyperparam_tune_%j.out
 
 export PROJECT_FLOOD_DATA="/homes/vk223/ProjectFlood/static/imperial_data_paths.json"
