@@ -118,6 +118,7 @@ def objective(trial):
             # if epoch % 1000 == 0:
             #     save_checkpoint(model, optimizer, epoch, os.path.join(data_config["saved_models_path"], f"{model.name}_{epoch}.pt"), hyperparams)
         validation_losses.append(validation_epoch_average_loss) # STORE LAST VAL LOSS I.E. VAL LOSS FOR THE FINAL EPOCH
+        print(validation_epoch_average_loss)
         torch.cuda.empty_cache()
         # Save final model            
         # save_checkpoint(model, optimizer, epoch, os.path.join(data_config["saved_models_path"], f"{model.name}_{epoch}.pt"), hyperparams)
