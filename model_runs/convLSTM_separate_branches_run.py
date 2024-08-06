@@ -16,16 +16,16 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print('Device: {0}'.format(device))
 
 
-num_epochs = 10
+num_epochs = 100
 train_batch_size = 32
 learning_rate = 0.0001
 preceding_rainfall_days = 1
 dropout_prob = 0.0
 output_channels = 16
 conv_block_layers = 2
-convLSTM_layers = 1
-optimizer_str = 'Adam'
-criterion_str = 'BCEWithLogitsLoss'
+convLSTM_layers = 2
+optimizer_str = 'RMSprop'
+criterion_str = 'MSELoss'
 
 
 
@@ -51,7 +51,7 @@ if not os.path.exists(config_data["saved_models_path"]):
     os.makedirs(config_data["saved_models_path"])
 
 # Build the model
-model = ConvLSTMSeparateBranches(preceding_rainfall_days, 1, 16, 2, 1, dropout_prob)
+model = ConvLSTMSeparateBranches(preceding_rainfall_days, 1, output_channels, conv_block_layers, convLSTM_layers, dropout_prob)
 model = model.to(device)
 # params = list(model.parameters())
 
@@ -67,9 +67,9 @@ validation_batch_size = 16
 test_batch_size = 1
 
 train_dataloader = get_dataloader("training_labels_path", resolution=256, preceding_rainfall_days=preceding_rainfall_days, forecast_rainfall_days=1, 
-                                  transform=train_transform, batch_size=train_batch_size, shuffle=True, num_workers=4)
+                                  transform=None, batch_size=train_batch_size, shuffle=True, num_workers=4)
 val_dataloader = get_dataloader("validation_labels_path", resolution=256, preceding_rainfall_days=preceding_rainfall_days, forecast_rainfall_days=1, 
-                                transform=train_transform, batch_size=validation_batch_size, shuffle=False, num_workers=4)
+                                transform=None, batch_size=validation_batch_size, shuffle=False, num_workers=4)
 test_dataloader = get_dataloader("test_labels_path", resolution=256, preceding_rainfall_days=preceding_rainfall_days, forecast_rainfall_days=1, 
                                  transform=None, batch_size=test_batch_size, shuffle=False, num_workers=4)
 
