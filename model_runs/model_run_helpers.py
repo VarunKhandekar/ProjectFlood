@@ -99,7 +99,7 @@ def train_model(data_config_path: str, model,  criterion_type: str, optimizer_ty
             #     validation_losses.append(validation_epoch_average_loss)
 
         if epoch % 100 == 0:
-            print(f'Epoch {epoch+1}/{num_epochs}, Loss: {loss.item():.4f}')
+            print(f'Epoch {epoch}/{num_epochs}, Loss: {loss.item():.4f}')
 
         # Save model snapshot
         if epoch % 1000 == 0:
