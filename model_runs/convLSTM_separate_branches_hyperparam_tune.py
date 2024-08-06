@@ -138,7 +138,7 @@ def objective(trial):
         #     losses.append(validation_losses)
         # loss_filename = os.path.join(config_data["loss_plots_path"], f"losschart_{model.name}_tuning.png")
         # plot_loss_chart(losses, epochs, loss_filename)
-
+    print(model_name, sum(validation_losses) / len(validation_losses))
     return sum(validation_losses) / len(validation_losses)
 
 
@@ -167,7 +167,21 @@ model = ConvLSTMSeparateBranches(best_params['preceding_rainfall_days'],
                                  best_params['conv_block_layers'], 
                                  best_params['convLSTM_layers'], 
                                  best_params['dropout_prob'])
+hyperparams = {
+    'num_epochs': best_params['num_epochs'],
+    'trainbatchsize': best_params['train_batch_size'],
+    'lr': best_params['learning_rate'],
+    'precedingrainfalldays': best_params['preceding_rainfall_days'],
+    'dropoutprob': best_params['dropout_prob'],
+    'outputchannels': best_params['output_channels'],
+    'convblocklayers': best_params['conv_block_layers'],
+    'convLSTMlayers': best_params['convLSTM_layers'],
+    'optimizer': best_params['optimizer_str'],
+    'criterion': best_params['criterion_str']
+}
 
+model_name = generate_model_name(model.__class__.__name__, model_run_date, **hyperparams)
+model.name = model_name
 
 train_val_dataloader = get_dataloader("training_labels_path", resolution=256, preceding_rainfall_days=best_params['preceding_rainfall_days'], forecast_rainfall_days=1, 
                                       transform=train_transform, batch_size=best_params['train_batch_size'], shuffle=True, num_workers=4)
