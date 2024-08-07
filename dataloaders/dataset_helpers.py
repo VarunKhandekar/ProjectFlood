@@ -23,24 +23,24 @@ def get_log_rainfall_stats_training(training_path: str, rainfall_dir: str, prece
 
     return minimum, maximum
 
-def get_rainfall_stats_training(training_path: str, rainfall_dir: str, preceding_rainfall_days: int, forecast_rainfall_days: int = 1):
-    minimum, maximum = 0.0, 0.0
+# def get_rainfall_stats_training(training_path: str, rainfall_dir: str, preceding_rainfall_days: int, forecast_rainfall_days: int = 1):
+#     minimum, maximum = 0.0, 0.0
     
-    for im in os.listdir(training_path):
-        date_str = im[15:-4]
-        date = pd.to_datetime(date_str, format=r"%Y%m%d")
+#     for im in os.listdir(training_path):
+#         date_str = im[15:-4]
+#         date = pd.to_datetime(date_str, format=r"%Y%m%d")
         
-        rainfall_dates = generate_timestamps(date, preceding_rainfall_days, forecast_rainfall_days, "3h")
-        for rd in rainfall_dates:
-            rain_image_name = os.path.join(rainfall_dir, rd.strftime(r"%Y%j.%H")+".tif")
-            rain_image = imageio.imread(rain_image_name)
-            rain_image = rain_image.astype(np.float32) # De quantize
-            rain_image /= 1000.0
-            # rain_image = np.log(rain_image + 1) #Take log
-            maximum = np.maximum(maximum, np.max(rain_image))
-            minimum = np.minimum(minimum, np.min(rain_image))
+#         rainfall_dates = generate_timestamps(date, preceding_rainfall_days, forecast_rainfall_days, "3h")
+#         for rd in rainfall_dates:
+#             rain_image_name = os.path.join(rainfall_dir, rd.strftime(r"%Y%j.%H")+".tif")
+#             rain_image = imageio.imread(rain_image_name)
+#             rain_image = rain_image.astype(np.float32) # De quantize
+#             rain_image /= 1000.0
+#             # rain_image = np.log(rain_image + 1) #Take log
+#             maximum = np.maximum(maximum, np.max(rain_image))
+#             minimum = np.minimum(minimum, np.min(rain_image))
 
-    return minimum, maximum
+#     return minimum, maximum
 
 
 def normalise_rainfall(image, min, max):
@@ -90,7 +90,9 @@ def generate_label_images(label_name, soil_moisture_dir, topology_dir, rainfall_
         rain_image = imageio.imread(rain_image_name)
         rain_image = rain_image.astype(np.float32) # De quantize
         rain_image /= 1000.0
+        rain_image = np.log(rain_image + 1) #Take log
         rain_image = normalise_rainfall(rain_image, rainfall_min, rainfall_max)
+        rain_image = np.clip(rain_image, 0, 1) # FOR HANDLING CASES WHERE TEST/VALIDATION DATA EXCEEDS THE RANGE
         if rd < date:
             preceding.append(rain_image)
         else:
