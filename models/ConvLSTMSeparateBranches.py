@@ -104,7 +104,7 @@ class ConvLSTMSeparateBranches(nn.Module):
             nn.BatchNorm2d(output_channels*2),
             nn.LeakyReLU(),
             nn.Conv2d(output_channels*2, 1, kernel_size=1),
-            nn.Sigmoid() # No sigmoid as BCELogitsLoss as a criterion is more stable
+            nn.Sigmoid() # Remove sigmoid if using BCEWithLogitsLoss as a criterion (numerically more stable than BCELoss)
         )
 
     def forward(self, x):
