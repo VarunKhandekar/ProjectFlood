@@ -14,10 +14,10 @@ model_run_date = datetime.date.today().strftime(r'%Y%m%d')
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print('Device: {0}'.format(device))
-
+torch.manual_seed(42)
 
 num_epochs = 500
-train_batch_size = 32
+train_batch_size = 16
 learning_rate = 0.001
 preceding_rainfall_days = 1
 dropout_prob = 0.0
