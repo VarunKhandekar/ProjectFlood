@@ -68,8 +68,8 @@ def generate_label_images(label_name, soil_moisture_dir, topology_dir, rainfall_
     # images_dict['topology'] = imageio.imread(topology_name).toTensor()
     topology_image = imageio.imread(topology_name)
     topology_image = topology_image.astype(np.float32)
-    topology_image = standardise_locally(topology_image)
-    # topology_image = (topology_image - np.min(topology_image)) / (np.max(topology_image) - np.min(topology_image)) # Normalise
+    # topology_image = standardise_locally(topology_image)
+    topology_image = (topology_image - np.min(topology_image)) / (np.max(topology_image) - np.min(topology_image)) # Scaling
     images_dict['topology'] = [topology_image]
 
     #Soil Moisture - pseudo min-max scaling, float32 at the end
