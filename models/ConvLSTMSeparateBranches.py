@@ -102,7 +102,7 @@ class ConvLSTMSeparateBranches(nn.Module):
         self.final_conv = nn.Sequential(
             nn.Conv2d(output_channels*3, output_channels*2, kernel_size=final_conv_kernel_size, padding= final_conv_kernel_size // 2),
             nn.BatchNorm2d(output_channels*2),
-            nn.ReLU(),
+            nn.LeakyReLU(),
             nn.Conv2d(output_channels*2, 1, kernel_size=1),
             nn.Sigmoid() # No sigmoid as BCELogitsLoss as a criterion is more stable
         )
