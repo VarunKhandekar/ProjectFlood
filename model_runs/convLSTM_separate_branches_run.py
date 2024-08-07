@@ -17,8 +17,8 @@ print('Device: {0}'.format(device))
 torch.manual_seed(42)
 
 num_epochs = 500
-train_batch_size = 16
-learning_rate = 0.001
+train_batch_size = 32
+learning_rate = 0.0001
 preceding_rainfall_days = 1
 dropout_prob = 0.0
 output_channels = 16

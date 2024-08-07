@@ -99,13 +99,27 @@ class ConvLSTMSeparateBranches(nn.Module):
         self.convlstm = ConvLSTM(1, self.output_channels, 5, self.convLSTM_layers, self.dropout_prob)
 
         final_conv_kernel_size = 5
+        # self.final_conv = nn.Sequential(
+        #     nn.Conv2d(output_channels*3, output_channels*2, kernel_size=final_conv_kernel_size, padding= final_conv_kernel_size // 2),
+        #     nn.BatchNorm2d(output_channels*2),
+        #     nn.ReLU(),
+        #     nn.Conv2d(output_channels*2, 1, kernel_size=1),
+        #     nn.Sigmoid() # Remove sigmoid if using BCEWithLogitsLoss as a criterion (numerically more stable than BCELoss)
+        # )
         self.final_conv = nn.Sequential(
             nn.Conv2d(output_channels*3, output_channels*2, kernel_size=final_conv_kernel_size, padding= final_conv_kernel_size // 2),
             nn.BatchNorm2d(output_channels*2),
-            nn.ReLU(),
+            # nn.ReLU(),
             nn.Conv2d(output_channels*2, 1, kernel_size=1),
             nn.Sigmoid() # Remove sigmoid if using BCEWithLogitsLoss as a criterion (numerically more stable than BCELoss)
         )
+        # self.final_conv = nn.Sequential(
+        #     nn.Conv2d(output_channels*2, output_channels, kernel_size=final_conv_kernel_size, padding= final_conv_kernel_size // 2),
+        #     nn.BatchNorm2d(output_channels),
+        #     nn.ReLU(),
+        #     nn.Conv2d(output_channels, 1, kernel_size=1),
+        #     nn.Sigmoid() # Remove sigmoid if using BCEWithLogitsLoss as a criterion (numerically more stable than BCELoss)
+        # )
 
     def forward(self, x):
         b, image_num, h, w = x.size() #can ignore image_number as it is not needed for slicing the data. Channels should be 1 and not present in the input data 
@@ -118,6 +132,7 @@ class ConvLSTMSeparateBranches(nn.Module):
         soil_moisture_out = self.conv2(soil_moisture)
 
         combined = torch.cat([rainfall_out, topology_out, soil_moisture_out], dim=1)
+        # combined = torch.cat([rainfall_out, topology_out], dim=1)
         output = self.final_conv(combined) #NCXY, where C is 1
         output = output.squeeze(1) #NXY
         return output
