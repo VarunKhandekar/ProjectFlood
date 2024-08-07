@@ -19,13 +19,13 @@ print('Device: {0}'.format(device))
 num_epochs = 100
 train_batch_size = 32
 learning_rate = 0.0001
-preceding_rainfall_days = 1
+preceding_rainfall_days = 7
 dropout_prob = 0.0
 output_channels = 16
 conv_block_layers = 2
-convLSTM_layers = 2
+convLSTM_layers = 1
 optimizer_str = 'RMSprop'
-criterion_str = 'MSELoss'
+criterion_str = 'BCELoss'
 
 
 
