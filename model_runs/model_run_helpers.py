@@ -68,7 +68,8 @@ def train_model(data_config_path: str, model,  criterion_type: str, optimizer_ty
             loss.backward()
             optimizer.step()
             # last_outputs, last_labels = outputs, labels
-            last_outputs, last_labels = torch.sigmoid(outputs), labels # apply sigmoid for charting purposes
+            # last_outputs, last_labels = torch.sigmoid(outputs), labels # apply sigmoid for charting purposes
+            last_outputs, last_labels = outputs, labels # apply sigmoid for charting purposes
 
             training_epoch_loss += loss.item()
             num_batches += 1
