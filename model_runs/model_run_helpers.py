@@ -62,9 +62,11 @@ def train_model(data_config_path: str, model,  criterion_type: str, optimizer_ty
         num_batches = 0
         for inputs, labels in train_dataloader:
             inputs, labels = inputs.to(device, dtype=torch.float32), labels.to(device, dtype=torch.float32)
-            optimizer.zero_grad()
             outputs = model(inputs)
+            
+            
             loss = criterion(outputs, labels)
+            optimizer.zero_grad()
             loss.backward()
             optimizer.step()
             # last_outputs, last_labels = outputs, labels
@@ -156,7 +158,11 @@ def load_checkpoint(filepath):
     checkpoint = torch.load(filepath)
     hyperparams = checkpoint['hyperparams']
     if checkpoint['model_type'] == "ConvLSTMSeparateBranches":
-        model = ConvLSTMSeparateBranches(hyperparams['preceding_rainfall_days'], 1,  hyperparams['dropout_prob'])
+        model = ConvLSTMSeparateBranches(hyperparams['preceding_rainfall_days'], 1,  
+                                         hyperparams['output_channels'], 
+                                         hyperparams['conv_block_layers'],
+                                         hyperparams['convLSTM_layers'],
+                                         hyperparams['dropout_prob'])
         #TODO add the name as an attribute here?
     optimizer = getattr(optim, hyperparams['optimizer_type'])(model.parameters(), lr=hyperparams['learning_rate'])
 

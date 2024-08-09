@@ -14,19 +14,21 @@ def plot_model_output_vs_label(outputs, labels, filename):
         # Display true labels
         ax = axes[0, i]
         ax.imshow(labels[i], cmap='gray', vmin=0, vmax=1)  # Assuming grayscale images; change cmap if using color images
-        ax.axis('off')  # Hide axes ticks
+        ax.set_xticks([])
+        ax.set_yticks([])
         if i == 0:
             # ax.set_ylabel('True Label', rotation=0, size='large', labelpad=40)
-            ax.set_ylabel('True Label', rotation=0, size='large')
+            ax.set_ylabel('True Label', rotation=90, size='large')
             ax.yaxis.set_label_position("left")
 
         # Display model outputs
         ax = axes[1, i]
         ax.imshow(outputs[i], cmap='gray', vmin=0, vmax=1)
-        ax.axis('off')
+        ax.set_xticks([])
+        ax.set_yticks([])
         if i == 0:
             # ax.set_ylabel('Model Output', rotation=0, size='large', labelpad=40)
-            ax.set_ylabel('Model Output', rotation=0, size='large')
+            ax.set_ylabel('Model Output', rotation=90, size='large')
             ax.yaxis.set_label_position("left")
 
     fig.tight_layout()
@@ -45,10 +47,15 @@ def plot_loss_chart(losses, epochs, filename, hyperparams):
     plt.xlabel("Epochs")
     plt.ylabel("Loss")
     plt.grid(True)
+    plt.subplots_adjust(right=0.75)
+    plt.ylim(0, 1)
 
     hyperparams_text = '\n'.join([f'{key}: {value}' for key, value in hyperparams.items()])
-    plt.figtext(0.15, -0.2, "Hyperparameters:\n" + hyperparams_text, fontsize=9, 
-                bbox=dict(boxstyle="round,pad=0.3", edgecolor='gray', facecolor='white'))
+    # plt.figtext(0.15, -0.2, "Hyperparameters:\n" + hyperparams_text, fontsize=9, 
+    #             bbox=dict(boxstyle="round,pad=0.3", edgecolor='gray', facecolor='white'))
+    plt.figtext(0.76, 0.5, "Hyperparameters:\n" + hyperparams_text, fontsize=9, 
+                bbox=dict(boxstyle="round,pad=0.3", edgecolor='gray', facecolor='white'), 
+                ha='left', va='center')
     
     plt.legend(loc='upper right')
     plt.savefig(filename, bbox_inches='tight')
