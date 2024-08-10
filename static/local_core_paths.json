@@ -1,0 +1,23 @@
+{
+    "cleanup": "scripts/remove_zone_identifiers.sh",
+    
+    "google_drive_credentials": "/home/vkhandekar/project_flood/static/google_drive_credentials.json",
+    "earth_engine_project": "ee-varunkhandekar",
+    "google_drive_oauth": "/home/vkhandekar/project_flood/static/google_drive_oauth.json",
+
+    "MSWEP_Past_3hr_folder_id": "1DVR90Ud1C444bTOPeENX-3I7tgqPLnao",
+    "bangladesh_rainfall_folder_id": "1wmoF_KpcYMX63hr9M4EEG2J4gipNB9KD",
+    "soil_moisture_folder_id": "1OgvtZ6C11DutQnoysIN3AIIlhh5FEryG",
+
+    "rainfall_reprojection_master_high_res": "/home/vkhandekar/project_flood/static/BangladeshFlood_MASTER_2044_2573.tif",
+    "rainfall_reprojection_master_256": "/home/vkhandekar/project_flood/static/BangladeshFlood_MASTER_203_256.tif",
+    "final_flood_dates": "/home/vkhandekar/project_flood/static/final_flood_dates.xlsx",
+    "flood_events": "/home/vkhandekar/project_flood/static/Bangladesh_Flood_Events.xlsx",
+    "bangladesh_shape_outline": "/home/vkhandekar/project_flood/static/bangladesh-outline_68.geojson",
+
+
+    "rainfall_path_archive": "data/Archive/BangladeshRainfall",
+    "temp_rainfall_path": "/home/vkhandekar/project_flood/data/temp/"
+    
+}
+  

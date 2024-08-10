@@ -7,9 +7,16 @@ from dataloaders.dataset_helpers import *
 from dataloaders.custom_image_transforms import *
 
 class FloodPredictionDataset(Dataset):
-    def __init__(self, data_config_path, label_file_name, resolution, preceding_rainfall_days, forecast_rainfall_days, transform=None):
+    def __init__(self, data_config_path, core_config_path, label_file_name, resolution, preceding_rainfall_days, forecast_rainfall_days, transform=None):
         with open(data_config_path) as data_config_file:
             data_config = json.load(data_config_file)
+         
+        # Store flood dates
+        with open(core_config_path) as core_config_file:
+            core_config = json.load(core_config_file)
+        final_flood_dates = core_config["final_flood_dates"]
+        final_flood_dates = pd.read_excel(final_flood_dates)
+        self.final_flood_dates = final_flood_dates['Dates'].values
             
         self.rainfall_dir = f"{data_config['rainfall_path']}_{resolution}_{resolution}"
         self.topology_dir = f"{data_config['topology_path']}_{resolution}_{resolution}"
@@ -28,8 +35,12 @@ class FloodPredictionDataset(Dataset):
         return len(os.listdir(self.water_images_dir))
 
     def __getitem__(self, idx):
-
         label_name = sorted(os.listdir(self.water_images_dir))[idx]
+        flooded = False
+
+        label_date = pd.to_datetime(re.search(r'\d{8}', label_name).group(), format=r'%Y%m%d')
+        if label_date in self.final_flood_dates:
+            flooded = True
         label = imageio.imread(os.path.join(self.water_images_dir, label_name))
 
         # Get images, transform each if needed, then combine into a single tensor
@@ -58,7 +69,7 @@ class FloodPredictionDataset(Dataset):
 
         image_tensor = torch.cat([preceding_stacked, forecast_stacked, topology_stacked, soil_moisture_stacked], dim=0)
         
-        return image_tensor, label_tensor
+        return image_tensor, label_tensor, flooded
     
 
 class SubsetWithTransform(Dataset): #THIS IS NEEDED WHEN TRYING TO SEPARATELY APPLY TRANSFORMS TO TRAINING AND VALIDATION

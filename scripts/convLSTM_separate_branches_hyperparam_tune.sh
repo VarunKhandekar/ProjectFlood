@@ -5,7 +5,7 @@
 #SBATCH --output=convLSTM_sep_branch_hyperparam_tune_%j.out
 
 export PROJECT_FLOOD_DATA="/homes/vk223/ProjectFlood/static/imperial_data_paths.json"
-export PROJECT_FLOOD_CORE_PATHS="/homes/vk223/ProjectFlood/static/core_paths.json"
+export PROJECT_FLOOD_CORE_PATHS="/homes/vk223/ProjectFlood/static/imperial_core_paths.json"
 export PROJECT_FLOOD_REPO_DIR="/homes/vk223/ProjectFlood"
 source /vol/bitbucket/vk223/project_flood/projectfloodvenv/bin/activate
 source /vol/cuda/11.8.0/setup.sh
