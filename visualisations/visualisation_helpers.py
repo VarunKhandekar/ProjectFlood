@@ -3,7 +3,7 @@ import json
 import matplotlib.pyplot as plt
 
 
-def plot_model_output_vs_label(outputs, labels, filename):
+def plot_model_output_vs_label(outputs, labels, labels_flooded, filename):
     num_images = 4  # Number of images to display
     fig, axes = plt.subplots(2, num_images, figsize=(15, 6))  # Create a grid of subplots
 
@@ -20,6 +20,10 @@ def plot_model_output_vs_label(outputs, labels, filename):
             # ax.set_ylabel('True Label', rotation=0, size='large', labelpad=40)
             ax.set_ylabel('True Label', rotation=90, size='large')
             ax.yaxis.set_label_position("left")
+        if labels_flooded[i]:
+            ax.set_title('Flood')
+        else:
+            ax.set_title('No Flood')
 
         # Display model outputs
         ax = axes[1, i]

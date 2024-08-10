@@ -22,8 +22,8 @@ learning_rate = 0.0001
 preceding_rainfall_days = 1
 dropout_prob = 0.0
 output_channels = 16
-conv_block_layers = 5
-convLSTM_layers = 3
+conv_block_layers = 4
+convLSTM_layers = 2
 optimizer_str = 'RMSprop'
 criterion_str = 'BCELoss'
 
