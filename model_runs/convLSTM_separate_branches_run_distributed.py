@@ -12,7 +12,7 @@ from model_runs.distributed_gpu_helpers import *
 
 
 if __name__ == "__main__":
-        # CONFIGURATION AND HYPERPARAMETERS
+    # CONFIGURATION AND HYPERPARAMETERS
     model_run_date = datetime.date.today().strftime(r'%Y%m%d')
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')

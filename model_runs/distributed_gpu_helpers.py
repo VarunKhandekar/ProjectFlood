@@ -102,11 +102,11 @@ def train_model_dist(rank: int, world_size: int, data_config_path: str, model,  
 
         # Save model snapshot
         if epoch % 1000 == 0 and rank == 0:
-            save_checkpoint(model, optimizer, epoch, os.path.join(data_config["saved_models_path"], f"{model.name}_{epoch}.pt"), hyperparams)
+            save_checkpoint(model, optimizer, epoch, os.path.join(data_config["saved_models_path"], f"{get_attribute(model, 'name')}_{epoch}.pt"), hyperparams)
     
     # Save final model
     if rank == 0:         
-        save_checkpoint(model, optimizer, epoch, os.path.join(data_config["saved_models_path"], f"{model.name}_{epoch}.pt"), hyperparams)
+        save_checkpoint(model, optimizer, epoch, os.path.join(data_config["saved_models_path"], f"{get_attribute(model, 'name')}_{epoch}.pt"), hyperparams)
 
     # PLOT EXAMPLE IMAGES ON TRAINING
     # Select only 4 samples from the last batch
@@ -115,7 +115,7 @@ def train_model_dist(rank: int, world_size: int, data_config_path: str, model,  
             selected_outputs = last_outputs[:4]
             selected_labels = last_labels[:4]
             selected_labels_flooded = last_flooded[:4]
-            image_examples_filename = os.path.join(data_config["training_plots_path"], f"outputs_vs_labels_{model.name}.png")
+            image_examples_filename = os.path.join(data_config["training_plots_path"], f"outputs_vs_labels_{get_attribute(model, 'name')}.png")
             plot_model_output_vs_label(selected_outputs, selected_labels, selected_labels_flooded, image_examples_filename)
         
         # PLOT LOSS CHART
@@ -125,7 +125,7 @@ def train_model_dist(rank: int, world_size: int, data_config_path: str, model,  
             losses.append(training_losses)
             if validation_losses:
                 losses.append(validation_losses)
-            loss_filename = os.path.join(data_config["loss_plots_path"], f"losschart_{model.name}.png")
+            loss_filename = os.path.join(data_config["loss_plots_path"], f"losschart_{get_attribute(model, 'name')}.png")
             plot_loss_chart(losses, epochs, loss_filename, hyperparams)
 
     cleanup()
