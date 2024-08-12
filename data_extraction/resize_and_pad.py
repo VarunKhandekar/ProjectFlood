@@ -8,6 +8,47 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from data_extraction.generic_helpers import *
 from data_extraction.rainfall_helpers import *
 
+
+def generate_new_master(core_config_path: str, target_resolution: int):
+    with open(core_config_path) as core_config_file:
+        core_config = json.load(core_config_file)
+    start_res_path = core_config[f'rainfall_reprojection_master_high_res']
+    
+    try: # Check if we already have this resolution available.
+        resized_image_path = core_config[f'rainfall_reprojection_master_{desired_resolution}']
+        return
+    except KeyError: #If not, perform resizing
+        original_image = Image.open(start_res_path)
+        # Resize the image to new dimensions
+        original_width, original_height = original_image.size
+
+        target_resolution_is_height = True
+        if original_height < original_width:
+            target_resolution_is_height = False
+
+        aspect_ratio = original_width / original_height
+        if target_resolution_is_height:
+            new_height = target_resolution
+            new_width = int(aspect_ratio * new_height)
+        else:
+            new_width = target_resolution
+            new_height = int(new_width / aspect_ratio)
+
+        
+        resized_image = original_image.resize((new_width, new_height), Image.LANCZOS)
+
+        # Save the resized image
+        pattern = r'(\d+)_(\d+)\.tif$'
+        replacement = f'{new_width}_{new_height}.tif'
+        resized_image_path = re.sub(pattern, replacement, start_res_path)
+        resized_image.save(resized_image_path)
+
+        #Update config file
+        core_config[f'rainfall_reprojection_master_{desired_resolution}'] = resized_image_path
+        with open(core_config_path, 'w') as core_config_file:
+            json.dump(core_config, core_config_file, indent=4)
+    
+
 def process_rainfall_batch(batch: list[pd.Timestamp], drive: GoogleDrive, bounding_box: box):
     """
     Process a batch of rainfall data files by pulling, cropping, and saving them to the desired location.
@@ -29,6 +70,12 @@ def process_rainfall_batch(batch: list[pd.Timestamp], drive: GoogleDrive, boundi
     """
     drive_files = generate_files_of_interest(drive, batch, os.environ["PROJECT_FLOOD_CORE_PATHS"], 'MSWEP_Past_3hr_folder_id')
 
+
+    # Check if the directory exists, if not create it. data_config is already present i the namespace above this function level
+    directory = f"{data_config['rainfall_path']}_{desired_resolution}_{desired_resolution}"
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
     for j, ts in enumerate(batch):
         rainfall_file = pull_and_crop_rainfall_data(drive, 
                                                     drive_files[j], 
@@ -38,13 +85,16 @@ def process_rainfall_batch(batch: list[pd.Timestamp], drive: GoogleDrive, boundi
                                                     os.environ["PROJECT_FLOOD_CORE_PATHS"], 
                                                     desired_resolution)
         destination = os.path.join(f"{data_config['rainfall_path']}_{desired_resolution}_{desired_resolution}", os.path.basename(rainfall_file))
-        print(rainfall_file, destination)
+        # print(rainfall_file, destination)
         shutil.move(rainfall_file, destination)
 
 
 if __name__ == "__main__":
     # Tweak water, soil moisture, topology
-    desired_resolution = 256
+    desired_resolution = 128
+
+    generate_new_master(os.environ["PROJECT_FLOOD_CORE_PATHS"], desired_resolution)
+
     with open(os.environ["PROJECT_FLOOD_DATA"]) as data_config_file:
         data_config = json.load(data_config_file)
     

@@ -151,15 +151,21 @@ def resize_and_pad_with_PIL(file_path: str, core_config_path: str, desired_resol
     target_image = Image.open(target_image_file_path)
     new_width, new_height = target_image.width, target_image.height
 
+    directory = os.path.dirname(target_file_path)
+
+    # Check if the directory exists, if not create it
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
     try:
         with Image.open(file_path) as img:
             resized_img = img.resize((new_width, new_height))
             resized_and_padded_img = pad_to_square(resized_img, desired_resolution)
-            resized_and_padded_img.save(target_file_path)
+            resized_and_padded_img.save(target_file_path, compression='tiff_deflate')
     except:
         img = rasterio.open(file_path)
         img = img.read(1)
         img = Image.fromarray(img)
         resized_img = img.resize((new_width, new_height))
         resized_and_padded_img = pad_to_square(resized_img, desired_resolution)
-        resized_and_padded_img.save(target_file_path)
+        resized_and_padded_img.save(target_file_path, compression='tiff_deflate')

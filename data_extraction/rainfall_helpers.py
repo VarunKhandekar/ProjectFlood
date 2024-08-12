@@ -114,39 +114,39 @@ def reproject_and_upsample_rasterio(input_file: str,
 
     return output_file
 
-def reproject_and_upsample_PIL(input_file: str, 
-                               output_file: str, 
-                               core_config_path: str,
-                               desired_resolution: int) -> str:
-    """
-    Reproject, upsample, and pad an image file using PIL.
+# def reproject_and_upsample_PIL(input_file: str, 
+#                                output_file: str, 
+#                                core_config_path: str,
+#                                desired_resolution: int) -> str:
+#     """
+#     Reproject, upsample, and pad an image file using PIL.
 
-    Args:
-        input_file (str): Path to the input image file.
-        output_file (str): Path to the output image file.
-        config_file (str): Path to the configuration file containing master file information.
-        desired_resolution (int): The desired width and height for the output image.
+#     Args:
+#         input_file (str): Path to the input image file.
+#         output_file (str): Path to the output image file.
+#         config_file (str): Path to the configuration file containing master file information.
+#         desired_resolution (int): The desired width and height for the output image.
 
-    Returns:
-        str: Path to the output file.
+#     Returns:
+#         str: Path to the output file.
 
-    This function performs the following steps:
-        1. Opens the input image file.
-        2. Retrieves the master file information from the configuration file.
-        3. Upsamples the input image to match the dimensions of the master file.
-        4. Pads the upsampled image to the desired resolution.
-        5. Saves the padded image to the specified output file with TIFF deflate compression.
-    """
-    lowres_image = Image.open(input_file)
-    with open(core_config_path) as core_config_file:
-        core_config = json.load(core_config_file)
-    target_image = Image.open(core_config['rainfall_reprojection_master_low_res'])
+#     This function performs the following steps:
+#         1. Opens the input image file.
+#         2. Retrieves the master file information from the configuration file.
+#         3. Upsamples the input image to match the dimensions of the master file.
+#         4. Pads the upsampled image to the desired resolution.
+#         5. Saves the padded image to the specified output file with TIFF deflate compression.
+#     """
+#     lowres_image = Image.open(input_file)
+#     with open(core_config_path) as core_config_file:
+#         core_config = json.load(core_config_file)
+#     target_image = Image.open(core_config['rainfall_reprojection_master_low_res'])
 
-    upsampled_image = lowres_image.resize((target_image.width, target_image.height))
-    upsampled_image = pad_to_square(upsampled_image, desired_resolution)
-    upsampled_image.save(output_file, compression='tiff_deflate')
+#     upsampled_image = lowres_image.resize((target_image.width, target_image.height))
+#     upsampled_image = pad_to_square(upsampled_image, desired_resolution)
+#     upsampled_image.save(output_file, compression='tiff_deflate')
 
-    return output_file
+#     return output_file
 
 def get_transform_from_xarray(data_array):
     # Assuming the coordinates are named 'lon' and 'lat' and are regularly spaced
@@ -190,10 +190,11 @@ def pull_and_crop_rainfall_data(drive: GoogleDrive,
 
     new_file = drive.CreateFile({'id': original_file['id']})
     new_path = os.path.join(temp_output_path, f"{timestamp.year}{timestamp.dayofyear:03}.{timestamp.hour:02}.nc")
-    lowres_tif_file = os.path.join(temp_output_path, f"{timestamp.year}{timestamp.dayofyear:03}.{timestamp.hour:02}_lowres.tif")
-    new_file.GetContentFile(new_path)
+    new_file.GetContentFile(new_path) # save down the file from google drive
 
-    # Clip the data and save down
+    lowres_tif_file = os.path.join(temp_output_path, f"{timestamp.year}{timestamp.dayofyear:03}.{timestamp.hour:02}_lowres.tif")
+
+    # Clip the data and save down into lowres_file_path
     geojson = [mapping(shape)] # Use GeoJSON of the shape
     with xr.open_dataset(new_path, engine="netcdf4") as data:
         data = data['precipitation']
@@ -202,7 +203,8 @@ def pull_and_crop_rainfall_data(drive: GoogleDrive,
         
         data_clipped = data.rio.clip(geojson, all_touched=True)
         data_clipped = ((data_clipped*1000)//1).astype(np.uint16) # QUANTIZATION
-    
+    data_clipped = np.squeeze(data_clipped) # get correct dimensions
+
     metadata = {
         'driver': 'GTiff',
         'height': data_clipped.shape[0],
@@ -214,12 +216,12 @@ def pull_and_crop_rainfall_data(drive: GoogleDrive,
     }
     with rasterio.open(lowres_tif_file, 'w', **metadata) as dst:
         dst.write(data_clipped.values, 1) 
-    os.remove(new_path)
+    os.remove(new_path) #Remove original image from google drive
     
     # Do reprojection, upsampling and compression before saving down
     output_tif_file = os.path.join(temp_output_path, f"{timestamp.year}{timestamp.dayofyear:03}.{timestamp.hour:02}.tif")
     # reproject_and_upsample_rasterio(lowres_tif_file, output_tif_file, config_file) #2044x2573
-    reproject_and_upsample_PIL(lowres_tif_file, output_tif_file, core_config_path, desired_resolution) #256x256
+    resize_and_pad_with_PIL(lowres_tif_file, core_config_path, desired_resolution, output_tif_file) #256x256 #Saves the resampled image
     os.remove(lowres_tif_file)
 
     return output_tif_file
