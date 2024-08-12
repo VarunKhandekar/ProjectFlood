@@ -22,7 +22,7 @@ if __name__ == "__main__":
     torch.manual_seed(42)
 
     num_epochs = 3000
-    train_batch_size = 128
+    train_batch_size = 164
     learning_rate = 0.0001
     preceding_rainfall_days = 1
     dropout_prob = 0.0
@@ -31,6 +31,7 @@ if __name__ == "__main__":
     convLSTM_layers = 2
     optimizer_str = 'RMSprop'
     criterion_str = 'BCELoss'
+    resolution = 256
 
 
     hyperparams = {
@@ -61,16 +62,16 @@ if __name__ == "__main__":
 
     # Specifics for training
     train_dataset = FloodPredictionDataset(os.environ["PROJECT_FLOOD_DATA"], os.environ["PROJECT_FLOOD_CORE_PATHS"], 
-                                           "training_labels_path", resolution=256, preceding_rainfall_days=preceding_rainfall_days, 
+                                           "training_labels_path", resolution=resolution, preceding_rainfall_days=preceding_rainfall_days, 
                                             forecast_rainfall_days=1, transform=None)
 
     # Set up dataloaders
     validation_batch_size = 16
     test_batch_size = 1
 
-    val_dataloader = get_dataloader("validation_labels_path", resolution=256, preceding_rainfall_days=preceding_rainfall_days, forecast_rainfall_days=1, 
+    val_dataloader = get_dataloader("validation_labels_path", resolution=resolution, preceding_rainfall_days=preceding_rainfall_days, forecast_rainfall_days=1, 
                                     transform=None, batch_size=validation_batch_size, shuffle=False, num_workers=4)
-    test_dataloader = get_dataloader("test_labels_path", resolution=256, preceding_rainfall_days=preceding_rainfall_days, forecast_rainfall_days=1, 
+    test_dataloader = get_dataloader("test_labels_path", resolution=resolution, preceding_rainfall_days=preceding_rainfall_days, forecast_rainfall_days=1, 
                                     transform=None, batch_size=test_batch_size, shuffle=False, num_workers=4)
     
     # Train the model
