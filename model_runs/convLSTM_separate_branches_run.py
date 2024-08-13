@@ -26,7 +26,7 @@ conv_block_layers = 4
 convLSTM_layers = 2
 optimizer_str = 'RMSprop'
 criterion_str = 'BCELoss'
-resolution = 128
+resolution = 256
 
 
 hyperparams = {

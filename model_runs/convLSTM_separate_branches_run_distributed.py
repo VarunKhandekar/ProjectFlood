@@ -22,7 +22,7 @@ if __name__ == "__main__":
     torch.manual_seed(42)
 
     num_epochs = 3000
-    train_batch_size = 164
+    train_batch_size = 64
     learning_rate = 0.0001
     preceding_rainfall_days = 1
     dropout_prob = 0.0
