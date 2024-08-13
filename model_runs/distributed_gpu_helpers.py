@@ -115,7 +115,7 @@ def train_model_dist(rank: int, world_size: int, data_config_path: str, model,  
             selected_outputs = last_outputs[:4]
             selected_labels = last_labels[:4]
             selected_labels_flooded = last_flooded[:4]
-            image_examples_filename = os.path.join(data_config["training_plots_path"], f"outputs_vs_labels_{get_attribute(model, 'name')}.png")
+            image_examples_filename = os.path.join(data_config["training_plots_path"], f"outputs_vs_labels_{get_attribute(model, 'name')}_{train_dataset.resolution}.png")
             plot_model_output_vs_label(selected_outputs, selected_labels, selected_labels_flooded, image_examples_filename)
             print("Training chart image saved!")
         
@@ -126,7 +126,7 @@ def train_model_dist(rank: int, world_size: int, data_config_path: str, model,  
             losses.append(training_losses)
             if validation_losses:
                 losses.append(validation_losses)
-            loss_filename = os.path.join(data_config["loss_plots_path"], f"losschart_{get_attribute(model, 'name')}.png")
+            loss_filename = os.path.join(data_config["loss_plots_path"], f"losschart_{get_attribute(model, 'name')}_{train_dataset.resolution}.png")
             plot_loss_chart(losses, epochs, loss_filename, hyperparams)
             print("Loss chart image saved!")
 

@@ -16,11 +16,11 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print('Device: {0}'.format(device))
 torch.manual_seed(42)
 
-num_epochs = 3000
+num_epochs = 5000
 train_batch_size = 32
 learning_rate = 0.0001
 preceding_rainfall_days = 1
-dropout_prob = 0.0
+dropout_prob = 0.3
 output_channels = 16
 conv_block_layers = 4
 convLSTM_layers = 2
