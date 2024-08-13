@@ -55,6 +55,8 @@ def plot_loss_chart(losses, epochs, filename, hyperparams):
     plt.ylim(0, 1)
 
     hyperparams_text = '\n'.join([f'{key}: {value}' for key, value in hyperparams.items()])
+    resolution = filename[(filename.rfind('_') + 1):filename.rfind('.png')]
+    hyperparams_text.append(f"\nResolution: {resolution}")
     # plt.figtext(0.15, -0.2, "Hyperparameters:\n" + hyperparams_text, fontsize=9, 
     #             bbox=dict(boxstyle="round,pad=0.3", edgecolor='gray', facecolor='white'))
     plt.figtext(0.76, 0.5, "Hyperparameters:\n" + hyperparams_text, fontsize=9, 
