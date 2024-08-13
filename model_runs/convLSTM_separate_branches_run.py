@@ -26,7 +26,7 @@ conv_block_layers = 4
 convLSTM_layers = 2
 optimizer_str = 'RMSprop'
 criterion_str = 'BCELoss'
-resolution = 256
+resolution = 128
 
 
 hyperparams = {
@@ -67,7 +67,7 @@ validation_batch_size = 16
 test_batch_size = 1
 
 train_dataloader = get_dataloader("training_labels_path", resolution=resolution, preceding_rainfall_days=preceding_rainfall_days, forecast_rainfall_days=1, 
-                                  transform=train_transform, batch_size=train_batch_size, shuffle=True, num_workers=4)
+                                  transform=None, batch_size=train_batch_size, shuffle=True, num_workers=4)
 val_dataloader = get_dataloader("validation_labels_path", resolution=resolution, preceding_rainfall_days=preceding_rainfall_days, forecast_rainfall_days=1, 
                                 transform=None, batch_size=validation_batch_size, shuffle=False, num_workers=4)
 test_dataloader = get_dataloader("test_labels_path", resolution=resolution, preceding_rainfall_days=preceding_rainfall_days, forecast_rainfall_days=1, 
