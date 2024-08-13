@@ -98,7 +98,7 @@ def train_model_dist(rank: int, world_size: int, data_config_path: str, model,  
             validation_losses.append(validation_epoch_average_loss)
 
         if epoch % 100 == 0 and rank == 0:
-            print(f'Epoch {epoch}/{num_epochs}, Loss: {loss.item():.4f}')
+            print(f'Epoch {epoch}/{num_epochs}, Loss: {loss.item():.4f}, Val Loss: {validation_epoch_average_loss:.4f}')
 
         # Save model snapshot
         if epoch % 1000 == 0 and rank == 0:
@@ -117,9 +117,10 @@ def train_model_dist(rank: int, world_size: int, data_config_path: str, model,  
             selected_labels_flooded = last_flooded[:4]
             image_examples_filename = os.path.join(data_config["training_plots_path"], f"outputs_vs_labels_{get_attribute(model, 'name')}.png")
             plot_model_output_vs_label(selected_outputs, selected_labels, selected_labels_flooded, image_examples_filename)
+            print("Training chart image saved!")
         
         # PLOT LOSS CHART
-        print(validation_losses)
+        # print(validation_losses)
         if plot_losses:
             losses = []
             losses.append(training_losses)
@@ -127,6 +128,7 @@ def train_model_dist(rank: int, world_size: int, data_config_path: str, model,  
                 losses.append(validation_losses)
             loss_filename = os.path.join(data_config["loss_plots_path"], f"losschart_{get_attribute(model, 'name')}.png")
             plot_loss_chart(losses, epochs, loss_filename, hyperparams)
+            print("Loss chart image saved!")
 
     cleanup()
     return model, epoch
