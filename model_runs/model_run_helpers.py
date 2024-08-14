@@ -45,6 +45,7 @@ def train_model(data_config_path: str, model,  criterion_type: str, optimizer_ty
         'optimizer_type': optimizer_type,
         'criterion': criterion_type  
     }
+    print(hyperparams)
 
     with open(data_config_path) as data_config_file:
         data_config = json.load(data_config_file)
@@ -101,7 +102,7 @@ def train_model(data_config_path: str, model,  criterion_type: str, optimizer_ty
         selected_outputs = last_outputs[:4]
         selected_labels = last_labels[:4]
         selected_labels_flooded = last_flooded[:4]
-        image_examples_filename = os.path.join(data_config["training_plots_path"], f"outputs_vs_labels_{model.name}_{train_dataloader.dataset.resolution}.png")
+        image_examples_filename = os.path.join(data_config["training_plots_path"], f"outputs_vs_labels_{model.name}.png")
         plot_model_output_vs_label(selected_outputs, selected_labels, selected_labels_flooded, image_examples_filename)
         print("Training chart image saved!")
     
@@ -112,7 +113,7 @@ def train_model(data_config_path: str, model,  criterion_type: str, optimizer_ty
         losses.append(training_losses)
         if validation_losses:
             losses.append(validation_losses)
-        loss_filename = os.path.join(data_config["loss_plots_path"], f"losschart_{model.name}_{train_dataloader.dataset.resolution}.png")
+        loss_filename = os.path.join(data_config["loss_plots_path"], f"losschart_{model.name}.png")
         plot_loss_chart(losses, epochs, loss_filename, hyperparams)
         print("Loss chart image saved!")
 

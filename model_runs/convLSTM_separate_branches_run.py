@@ -16,9 +16,9 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print('Device: {0}'.format(device))
 torch.manual_seed(42)
 
-num_epochs = 5000
+num_epochs = 8000
 train_batch_size = 32
-learning_rate = 0.0001
+learning_rate = 0.001
 preceding_rainfall_days = 1
 dropout_prob = 0.3
 output_channels = 16
@@ -26,20 +26,23 @@ conv_block_layers = 4
 convLSTM_layers = 2
 optimizer_str = 'RMSprop'
 criterion_str = 'BCELoss'
-resolution = 128
+resolution = 256
+transforms = False
 
 
 hyperparams = {
-    'num_epochs': num_epochs,
-    'trainbatchsize': train_batch_size,
+    'epochs': num_epochs,
+    'batchsize': train_batch_size,
     'lr': learning_rate,
-    'precedingrainfalldays': preceding_rainfall_days,
-    'dropoutprob': dropout_prob,
+    'precedingrainfall': preceding_rainfall_days,
+    'dropout': dropout_prob,
     'outputchannels': output_channels,
     'convblocklayers': conv_block_layers,
     'convLSTMlayers': convLSTM_layers,
-    'optimizer': optimizer_str,
-    'criterion': criterion_str
+    'optim': optimizer_str,
+    'criterion': criterion_str,
+    'transforms': transforms,
+    'res': resolution
 }
 
 
@@ -66,8 +69,13 @@ model.name = model_name
 validation_batch_size = 16
 test_batch_size = 1
 
-train_dataloader = get_dataloader("training_labels_path", resolution=resolution, preceding_rainfall_days=preceding_rainfall_days, forecast_rainfall_days=1, 
-                                  transform=None, batch_size=train_batch_size, shuffle=True, num_workers=4)
+if transforms:
+    train_dataloader = get_dataloader("training_labels_path", resolution=resolution, preceding_rainfall_days=preceding_rainfall_days, forecast_rainfall_days=1, 
+                                    transform=train_transform, batch_size=train_batch_size, shuffle=True, num_workers=4)
+else:
+    train_dataloader = get_dataloader("training_labels_path", resolution=resolution, preceding_rainfall_days=preceding_rainfall_days, forecast_rainfall_days=1, 
+                                    transform=None, batch_size=train_batch_size, shuffle=True, num_workers=4)
+       
 val_dataloader = get_dataloader("validation_labels_path", resolution=resolution, preceding_rainfall_days=preceding_rainfall_days, forecast_rainfall_days=1, 
                                 transform=None, batch_size=validation_batch_size, shuffle=False, num_workers=4)
 test_dataloader = get_dataloader("test_labels_path", resolution=resolution, preceding_rainfall_days=preceding_rainfall_days, forecast_rainfall_days=1, 

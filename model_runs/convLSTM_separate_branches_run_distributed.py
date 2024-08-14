@@ -21,30 +21,33 @@ if __name__ == "__main__":
     world_size = torch.cuda.device_count()
     torch.manual_seed(42)
 
-    num_epochs = 3000
+    num_epochs = 8000
     train_batch_size = 64
     learning_rate = 0.0001
     preceding_rainfall_days = 1
-    dropout_prob = 0.0
+    dropout_prob = 0.3
     output_channels = 16
     conv_block_layers = 4
     convLSTM_layers = 2
     optimizer_str = 'RMSprop'
     criterion_str = 'BCELoss'
     resolution = 256
+    transforms = False
 
 
     hyperparams = {
-        'num_epochs': num_epochs,
-        'trainbatchsize': train_batch_size,
+        'epochs': num_epochs,
+        'batchsize': train_batch_size,
         'lr': learning_rate,
-        'precedingrainfalldays': preceding_rainfall_days,
-        'dropoutprob': dropout_prob,
+        'precedingrainfall': preceding_rainfall_days,
+        'dropout': dropout_prob,
         'outputchannels': output_channels,
         'convblocklayers': conv_block_layers,
         'convLSTMlayers': convLSTM_layers,
-        'optimizer': optimizer_str,
-        'criterion': criterion_str
+        'optim': optimizer_str,
+        'criterion': criterion_str,
+        'transforms': transforms,
+        'res': resolution
     }
 
 
@@ -61,9 +64,14 @@ if __name__ == "__main__":
 
 
     # Specifics for training
-    train_dataset = FloodPredictionDataset(os.environ["PROJECT_FLOOD_DATA"], os.environ["PROJECT_FLOOD_CORE_PATHS"], 
-                                           "training_labels_path", resolution=resolution, preceding_rainfall_days=preceding_rainfall_days, 
-                                            forecast_rainfall_days=1, transform=None)
+    if transforms:
+        train_dataset = FloodPredictionDataset(os.environ["PROJECT_FLOOD_DATA"], os.environ["PROJECT_FLOOD_CORE_PATHS"], 
+                                            "training_labels_path", resolution=resolution, preceding_rainfall_days=preceding_rainfall_days, 
+                                                forecast_rainfall_days=1, transform=train_transform)
+    else:
+        train_dataset = FloodPredictionDataset(os.environ["PROJECT_FLOOD_DATA"], os.environ["PROJECT_FLOOD_CORE_PATHS"], 
+                                                "training_labels_path", resolution=resolution, preceding_rainfall_days=preceding_rainfall_days, 
+                                                    forecast_rainfall_days=1, transform=None)
 
     # Set up dataloaders
     validation_batch_size = 16
