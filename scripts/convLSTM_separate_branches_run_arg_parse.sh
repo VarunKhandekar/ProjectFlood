@@ -35,7 +35,7 @@ CONVLSTM_LAYERS=(2)
 OPTIMIZERS=('RMSprop')
 CRITERIONS=('BCELoss')
 RESOLUTIONS=(128 256)
-TRANSFORMS=(False)
+TRANSFORMS=('False')
 
 
 for num_epochs in "${NUM_EPOCHS[@]}"; do

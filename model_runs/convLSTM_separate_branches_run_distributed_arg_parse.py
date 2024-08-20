@@ -37,7 +37,7 @@ if __name__ == "__main__":
     parser.add_argument('--optimizer_str', type=str, default='RMSprop')
     parser.add_argument('--criterion_str', type=str, default='BCELoss')
     parser.add_argument('--resolution', type=int, default=256)
-    parser.add_argument('--transforms', type=bool, default=False)
+    parser.add_argument('--transforms', type=str, default='False')
 
     args = parser.parse_args()
 
@@ -52,8 +52,7 @@ if __name__ == "__main__":
     optimizer_str = args.optimizer_str
     criterion_str = args.criterion_str
     resolution = args.resolution
-    transforms = args.transforms
-
+    transforms = True if args.transforms.lower() == 'true' else False
 
     hyperparams = {
         'epochs': num_epochs,
