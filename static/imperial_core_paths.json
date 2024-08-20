@@ -18,7 +18,8 @@
 
 
     "rainfall_path_archive": "data/Archive/BangladeshRainfall",
-    "temp_rainfall_path": "/home/vkhandekar/project_flood/data/temp/"
+    "temp_rainfall_path": "/home/vkhandekar/project_flood/data/temp/",
+    "rerun_path": "/homes/vk223/ProjectFlood/static/to_rerun.csv"
     
 }
   
