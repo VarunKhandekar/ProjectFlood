@@ -45,7 +45,7 @@ def train_model(data_config_path: str, model,  criterion_type: str, optimizer_ty
         'optimizer_type': optimizer_type,
         'criterion': criterion_type  
     }
-    print(hyperparams)
+    # print(hyperparams)
 
     with open(data_config_path) as data_config_file:
         data_config = json.load(data_config_file)

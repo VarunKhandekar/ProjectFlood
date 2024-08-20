@@ -64,7 +64,7 @@ def train_model_dist(rank: int, world_size: int, data_config_path: str, model,  
         'optimizer_type': optimizer_type,
         'criterion': criterion_type  
     }
-    print(hyperparams)
+    # print(hyperparams)
 
     training_losses = []
     validation_losses = []

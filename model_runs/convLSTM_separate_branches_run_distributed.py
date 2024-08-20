@@ -49,6 +49,7 @@ if __name__ == "__main__":
         'transforms': transforms,
         'res': resolution
     }
+    print(hyperparams)
 
 
     with open(os.environ["PROJECT_FLOOD_DATA"]) as config_file_path:

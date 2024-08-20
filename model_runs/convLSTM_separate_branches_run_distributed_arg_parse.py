@@ -2,21 +2,26 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import os
-import argparse
 import time
+import argparse
 from torch.utils.data import DataLoader
 from dataloaders.convLSTM_dataset import *
 from dataloaders.custom_image_transforms import *
 from models.ConvLSTMSeparateBranches import *
 from model_runs.model_run_helpers import *
+from model_runs.distributed_gpu_helpers import *
+
+
 
 if __name__ == "__main__":
-    # CONFIGURATION AND HYPERPARAMETERS
     start_time = time.time()
+    # CONFIGURATION AND HYPERPARAMETERS
     model_run_date = datetime.date.today().strftime(r'%Y%m%d')
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    print('Device: {0}'.format(device))
+    # print('Device: {0}'.format(device))
+    # print(torch.cuda.device_count())
+    world_size = torch.cuda.device_count()
     torch.manual_seed(42)
 
     parser = argparse.ArgumentParser(description='Training parameters')
@@ -67,7 +72,6 @@ if __name__ == "__main__":
     print(hyperparams)
 
 
-
     with open(os.environ["PROJECT_FLOOD_DATA"]) as config_file_path:
         config_data = json.load(config_file_path)
 
@@ -76,36 +80,42 @@ if __name__ == "__main__":
 
     # Build the model
     model = ConvLSTMSeparateBranches(preceding_rainfall_days, 1, output_channels, conv_block_layers, convLSTM_layers, dropout_prob)
-    model = model.to(device)
-    # params = list(model.parameters())
-
     model_name = generate_model_name(model.__class__.__name__, model_run_date, **hyperparams)
     model.name = model_name
 
-    # optimizer = getattr(optim, hyperparams['optimizer_type'])(model.parameters(), lr=learning_rate)
-    # optimizer = optim.Adam(params, lr=learning_rate)
-    # criterion = nn.BCEWithLogitsLoss()
+
+    # Specifics for training
+    if transforms:
+        train_dataset = FloodPredictionDataset(os.environ["PROJECT_FLOOD_DATA"], os.environ["PROJECT_FLOOD_CORE_PATHS"], 
+                                            "training_labels_path", resolution=resolution, preceding_rainfall_days=preceding_rainfall_days, 
+                                                forecast_rainfall_days=1, transform=train_transform)
+    else:
+        train_dataset = FloodPredictionDataset(os.environ["PROJECT_FLOOD_DATA"], os.environ["PROJECT_FLOOD_CORE_PATHS"], 
+                                                "training_labels_path", resolution=resolution, preceding_rainfall_days=preceding_rainfall_days, 
+                                                    forecast_rainfall_days=1, transform=None)
 
     # Set up dataloaders
     validation_batch_size = 16
     test_batch_size = 1
 
-    if transforms:
-        train_dataloader = get_dataloader("training_labels_path", resolution=resolution, preceding_rainfall_days=preceding_rainfall_days, forecast_rainfall_days=1, 
-                                        transform=train_transform, batch_size=train_batch_size, shuffle=True, num_workers=4)
-    else:
-        train_dataloader = get_dataloader("training_labels_path", resolution=resolution, preceding_rainfall_days=preceding_rainfall_days, forecast_rainfall_days=1, 
-                                        transform=None, batch_size=train_batch_size, shuffle=True, num_workers=4)
-        
     val_dataloader = get_dataloader("validation_labels_path", resolution=resolution, preceding_rainfall_days=preceding_rainfall_days, forecast_rainfall_days=1, 
                                     transform=None, batch_size=validation_batch_size, shuffle=False, num_workers=4)
     test_dataloader = get_dataloader("test_labels_path", resolution=resolution, preceding_rainfall_days=preceding_rainfall_days, forecast_rainfall_days=1, 
                                     transform=None, batch_size=test_batch_size, shuffle=False, num_workers=4)
-
-
+    
     # Train the model
-    model, end_epoch = train_model(os.environ['PROJECT_FLOOD_DATA'], model, criterion_str, optimizer_str, learning_rate, num_epochs, device, True, True, train_dataloader, val_dataloader)
-
+    torch.multiprocessing.spawn(train_model_dist, args=(world_size, os.environ['PROJECT_FLOOD_DATA'], 
+                                                        model, 
+                                                        criterion_str, 
+                                                        optimizer_str, 
+                                                        learning_rate, 
+                                                        num_epochs,
+                                                        True,
+                                                        True,
+                                                        train_batch_size,
+                                                        train_dataset,
+                                                        val_dataloader), nprocs=world_size)
+    
     end_time = time.time()
     elapsed_time = end_time - start_time
     days = elapsed_time // (24 * 3600)
@@ -114,4 +124,3 @@ if __name__ == "__main__":
     seconds = elapsed_time % 60
     print(f"{int(days)}-{int(hours):02}:{int(minutes):02}:{int(seconds):02}")
     print("\n\n")
-    
