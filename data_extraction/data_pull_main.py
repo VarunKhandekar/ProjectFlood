@@ -48,6 +48,7 @@ def process_flood_event(date, events, rainfall_days_before: int, rainfall_days_a
         maxPixels=1e13 
     )
     export_task.start()
+    print(export_task.id)
     time.sleep(1) # sleep to ensure no duplication of EE request IDs
 
     # Pull soil moisture data for the day before, store to gdrive
@@ -57,7 +58,21 @@ def process_flood_event(date, events, rainfall_days_before: int, rainfall_days_a
     soil_moisture = ee.Image(era5_soil_moisture.filterDate(soil_moisture_date.strftime(r"%Y-%m-%d"), 
                                                            (soil_moisture_date+pd.Timedelta(days=1)).strftime(r'%Y-%m-%d')).first())
     soil_moisture = soil_moisture.select("volumetric_soil_water_layer_1")
-    soil_moisture = soil_moisture.unmask(1)
+
+    sea_water_proxy = occurrence_band.gt(0.99)
+    masked_soil_moisture = soil_moisture.updateMask(sea_water_proxy.eq(1))
+
+    # Reduce the masked soil moisture image to get the average soil moisture value
+    average_soil_moisture = masked_soil_moisture.reduceRegion(
+        reducer=ee.Reducer.mean(),
+        geometry=main_region_shape,
+        crs='EPSG:4326',
+        crsTransform=crs_transform_list
+    ).getInfo()
+
+    # soil_moisture = soil_moisture.unmask(1)
+    soil_moisture = soil_moisture.unmask(average_soil_moisture["volumetric_soil_water_layer_1"])
+    # soil_moisture = soil_moisture.unmask(1)
     # soil_moisture = soil_moisture.resample(mode="bilinear")
     soil_moisture_task = ee.batch.Export.image.toDrive(
         image=soil_moisture,
@@ -110,7 +125,7 @@ def process_non_flood_event(date, rainfall_days_before: int, rainfall_days_after
     export_task = ee.batch.Export.image.toDrive(
         image=combo,
         description=f'BangladeshWater{date.year}{date.month:02}{date.day:02}',
-        folder='BangladeshNonFloodImages',
+        folder='BangladeshNonFloodImages2',
         fileNamePrefix=f'BangladeshWater{date.year}{date.month:02}{date.day:02}',
         region=main_region_shape,
         crs='EPSG:4326',
@@ -119,6 +134,7 @@ def process_non_flood_event(date, rainfall_days_before: int, rainfall_days_after
         maxPixels=1e13 
     )
     export_task.start()
+    print(export_task.id)
     time.sleep(1) # sleep to ensure no duplication of EE request IDs
 
     # Get soil moisture data
@@ -129,12 +145,25 @@ def process_non_flood_event(date, rainfall_days_before: int, rainfall_days_after
     soil_moisture = ee.Image(era5_soil_moisture.filterDate(soil_moisture_date.strftime(r"%Y-%m-%d"), 
                                                            (soil_moisture_date+pd.Timedelta(days=1)).strftime(r'%Y-%m-%d')).first())
     soil_moisture = soil_moisture.select("volumetric_soil_water_layer_1")
+
+    # sea_water_proxy = occurrence_band.gt(0.99)
+    # masked_soil_moisture = soil_moisture.updateMask(sea_water_proxy.eq(1))
+
+    # # Reduce the masked soil moisture image to get the average soil moisture value
+    # average_soil_moisture = masked_soil_moisture.reduceRegion(
+    #     reducer=ee.Reducer.mean(),
+    #     geometry=main_region_shape,
+    #     crs='EPSG:4326',
+    #     crsTransform=crs_transform_list
+    # ).getInfo()
+
     soil_moisture = soil_moisture.unmask(1)
+    # soil_moisture = soil_moisture.unmask(average_soil_moisture["volumetric_soil_water_layer_1"])
     # soil_moisture = soil_moisture.resample(mode="bilinear")
     soil_moisture_task = ee.batch.Export.image.toDrive(
         image=soil_moisture,
         description=f'BangladeshSoilMoisture{soil_moisture_date.year}{soil_moisture_date.month:02}{soil_moisture_date.day:02}',
-        folder='BangladeshSoilMoistureNonFlood',
+        folder='BangladeshSoilMoistureNonFlood2',
         fileNamePrefix=f'BangladeshSoilMoisture{soil_moisture_date.year}{soil_moisture_date.month:02}{soil_moisture_date.day:02}',
         region=soil_moisture_shape,
         crs='EPSG:4326',
@@ -152,7 +181,7 @@ def process_non_flood_event(date, rainfall_days_before: int, rainfall_days_after
     assert len(timestamps) == len(files)
     
     for i, timestamp in enumerate(timestamps):
-        rainfall_file = pull_and_crop_rainfall_data(drive, files[i], timestamp, os.environ["PROJECT_FLOOD_DATA"], rain_shape, os.environ["PROJECT_FLOOD_CORE_PATHS"])
+        rainfall_file = pull_and_crop_rainfall_data(drive, files[i], timestamp, os.environ["PROJECT_FLOOD_DATA"], rain_shape, os.environ["PROJECT_FLOOD_CORE_PATHS"], 256)
         send_to_google_drive(drive, rainfall_file, os.environ["PROJECT_FLOOD_CORE_PATHS"], 'bangladesh_rainfall_folder_id', overwrite=True)
 
 
@@ -173,7 +202,7 @@ if __name__=="__main__":
 
     perm_water_threshold = 50 # x% of the time the area is covered in water
 
-    crs_transform_list_high_res = [0.002245788210298804, 0.0, 88.08430518433968, 0.0, -0.002245788210298804, 26.44864775268901] #2043x2571
+    crs_transform_list_high_res = [0.002245788210298804, 0.0, 88.08430518433968, 0.0, -0.002245788210298804, 26.44864775268901] #2043x2571 - 250m approx
     # crs_transform_list = [0.0226492347869873, 0.0, 88.08430518433968, 0.0, -0.0226492347869873, 26.44864775268901] #203x256
 
     # Set Up Google Drive API
@@ -189,6 +218,7 @@ if __name__=="__main__":
     bangladesh_shape = generate_country_outline(core_config['bangladesh_shape_outline'])
     bangladesh_bounding_box = box(*bangladesh_shape.bounds)
     bangladesh_bounding_box_ee = ee.Geometry.BBox(*bangladesh_shape.bounds)
+    bangladesh_bounding_box_square_ee = ee.Geometry.BBox(*generate_square_coordinates_from_polygon(bangladesh_shape))
 
     # Set up shapes
     main_region_shape = bangladesh_bounding_box_ee
@@ -203,52 +233,56 @@ if __name__=="__main__":
     max_workers = 6
 
     # TOPOLOGY DATA
-    topology = ee.Image("NASA/NASADEM_HGT/001").select("elevation")
+    # topology = ee.Image("NASA/NASADEM_HGT/001").select("elevation")
 
-    # Replace all no data values with 0 (essentially the sea)
-    topology = topology.unmask(0)
+    # # Replace all no data values with 0 (essentially the sea)
+    # topology = topology.unmask(0)
 
-    export_task = ee.batch.Export.image.toDrive(
-        image=topology,
-        description='BangladeshTopology',
-        folder='Topology',
-        fileNamePrefix='BangladeshTopology',
-        region=bangladesh_bounding_box_ee,
-        crs='EPSG:4326',
-        # scale=250,  # Adjust the scale as needed
-        crsTransform=crs_transform_list_high_res,
-        maxPixels=1e13  # Adjust maxPixels as needed
-    )
-    export_task.start()
-    time.sleep(10)
+    # export_task = ee.batch.Export.image.toDrive(
+    #     image=topology,
+    #     description='BangladeshTopology',
+    #     folder='Topology',
+    #     fileNamePrefix='BangladeshTopology',
+    #     region=bangladesh_bounding_box_ee,
+    #     crs='EPSG:4326',
+    #     # scale=250,  # Adjust the scale as needed
+    #     crsTransform=crs_transform_list_high_res,
+    #     maxPixels=1e13  # Adjust maxPixels as needed
+    # )
+    # export_task.start()
+    # time.sleep(10)
 
     # FLOOD EVENTS
-    refined_flood_events = generate_flood_events(os.environ["PROJECT_FLOOD_CORE_PATHS"])
-    store_flood_dates(refined_flood_events) #Save list of flood dates under consideration
+    # refined_flood_events = generate_flood_events(os.environ["PROJECT_FLOOD_CORE_PATHS"])
+    # store_flood_dates(refined_flood_events) #Save list of flood dates under consideration
  
-    # Submit jobs, process pool to avoid memory issues
-    with ProcessPoolExecutor(max_workers=max_workers) as executor:
-        futures = [executor.submit(process_flood_event, date, events, rainfall_days_before, rainfall_days_after, main_region_shape, rain_shape, soil_moisture_shape) for date, events in refined_flood_events.items()]
+    # # Submit jobs, process pool to avoid memory issues
+    # with ProcessPoolExecutor(max_workers=max_workers) as executor:
+    #     futures = [executor.submit(process_flood_event, date, events, rainfall_days_before, rainfall_days_after, main_region_shape, rain_shape, soil_moisture_shape) for date, events in refined_flood_events.items()]
         
-        for future in as_completed(futures):
-            try:
-                result = future.result()
-                # print(f'Result: {result}')
-            except Exception as exc:
-                print(f'Generated an exception: {exc}')
+    #     for future in as_completed(futures):
+    #         try:
+    #             result = future.result()
+    #             # print(f'Result: {result}')
+    #         except Exception as exc:
+    #             print(f'Generated an exception: {exc}')
 
 
     # NON-FLOOD EVENTS
     print("Running non flood events....")
-    num_dates_to_generate = 100
+    # num_dates_to_generate = 6
     safety_window = 10
-    random_dates = generate_random_non_flood_dates(os.environ["PROJECT_FLOOD_CORE_PATHS"], num_dates_to_generate, safety_window, os.environ["PROJECT_FLOOD_DATA"])
-    # random_dates = pd.read_csv("to_rerun.csv", header=None)
-    # random_dates = list(random_dates.values.flatten())
+    # random_dates = generate_random_non_flood_dates(os.environ["PROJECT_FLOOD_CORE_PATHS"], num_dates_to_generate, safety_window, os.environ["PROJECT_FLOOD_DATA"])
+
+    random_dates = pd.read_csv(core_config['rerun_path'], header=None)
+    random_dates = list(random_dates.values.flatten())
+    random_dates = [pd.to_datetime(i) for i in random_dates]
+
+
     # random_dates = [pd.Timestamp(year=2000, month=9, day=18)]
 
     with ProcessPoolExecutor(max_workers=max_workers) as executor:
-        futures = [executor.submit(process_non_flood_event, date, rainfall_days_before, rainfall_days_after, main_region_shape, rain_shape, soil_moisture_shape) for date in random_dates]
+        futures = [executor.submit(process_non_flood_event, date, rainfall_days_before, rainfall_days_after, main_region_shape, rain_shape, soil_moisture_shape, crs_transform_list_high_res) for date in random_dates]
 
         for future in as_completed(futures):
             try:

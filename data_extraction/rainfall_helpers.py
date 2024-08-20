@@ -216,10 +216,11 @@ def pull_and_crop_rainfall_data(drive: GoogleDrive,
     }
     with rasterio.open(lowres_tif_file, 'w', **metadata) as dst:
         dst.write(data_clipped.values, 1) 
-    os.remove(new_path) #Remove original image from google drive
+    os.remove(new_path) #Remove original image saved down from google drive
     
+    new_output_path = f"{data_config['rainfall_path']}_{desired_resolution}_{desired_resolution}"
     # Do reprojection, upsampling and compression before saving down
-    output_tif_file = os.path.join(temp_output_path, f"{timestamp.year}{timestamp.dayofyear:03}.{timestamp.hour:02}.tif")
+    output_tif_file = os.path.join(new_output_path, f"{timestamp.year}{timestamp.dayofyear:03}.{timestamp.hour:02}.tif")
     # reproject_and_upsample_rasterio(lowres_tif_file, output_tif_file, config_file) #2044x2573
     resize_and_pad_with_PIL(lowres_tif_file, core_config_path, desired_resolution, output_tif_file) #256x256 #Saves the resampled image
     os.remove(lowres_tif_file)

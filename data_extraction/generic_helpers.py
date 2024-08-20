@@ -8,6 +8,7 @@ from datetime import timedelta
 from shapely.geometry import Polygon
 from PIL import Image, ImageOps
 
+
 def generate_country_outline(shapefile_path: str) -> Polygon:
     """
     Generate the outline of a country from a GeoJSON shapefile.
@@ -33,6 +34,23 @@ def generate_country_outline(shapefile_path: str) -> Polygon:
     
     return Polygon(polygon_coordinates[0][0])
 
+
+def generate_square_coordinates_from_polygon(polygon: Polygon):
+    min_lon, min_lat, max_lon, max_lat = polygon.bounds
+    width = max_lon - min_lon
+    height = max_lat - min_lat
+    square_size = max(width, height)
+
+    center_lon = (min_lon + max_lon) / 2
+    center_lat = (min_lat + max_lat) / 2
+
+    new_min_lon = center_lon - square_size / 2
+    new_min_lat = center_lat - square_size / 2
+    new_max_lon = center_lon + square_size / 2
+    new_max_lat = center_lat + square_size / 2
+    return new_min_lon, new_min_lat, new_max_lon, new_max_lat
+
+
 def generate_timestamps(date: pd.Timestamp, days_before: int, days_after: int, freq: str) -> list:
     """
     Generate a list of timestamps around a given date.
@@ -52,6 +70,7 @@ def generate_timestamps(date: pd.Timestamp, days_before: int, days_after: int, f
     timestamps = pd.date_range(start=start_time, end=end_time, freq=freq)
     # don't include final forecast as it takes us into day t+days_after+1
     return timestamps.tolist()[:-1]
+
 
 def generate_random_non_flood_dates(core_config_path: str, num_dates: int, safety_window: int, data_config_path: str) -> list:
     """
@@ -95,7 +114,7 @@ def generate_random_non_flood_dates(core_config_path: str, num_dates: int, safet
     # Get current dates we have already downloaded
     with open(data_config_path) as data_config_file:
         data_config = json.load(data_config_file)
-    existing_image_file_path = data_config['non_flood_file_path']
+    existing_image_file_path = f"{data_config['non_flood_file_path']}_256_256"
     current_dates = [pd.to_datetime(re.search(r'\d{8}', i).group(0), format=r'%Y%m%d') for i in os.listdir(existing_image_file_path)]
 
     random_dates = []
@@ -111,6 +130,7 @@ def generate_random_non_flood_dates(core_config_path: str, num_dates: int, safet
                 random_dates.append(random_date)
     
     return random_dates
+
 
 def remove_metadata(image_path: str):
     """
@@ -128,6 +148,7 @@ def remove_metadata(image_path: str):
     image_without_metadata.putdata(data)
     image_without_metadata.save(image_path)
 
+
 def pad_to_square(image: Image, desired_resolution: int) -> Image:
     """
     Pad an image to make it square with specified dimensions.
@@ -143,6 +164,7 @@ def pad_to_square(image: Image, desired_resolution: int) -> Image:
     pad_height = desired_resolution - image.height
     padded_image = ImageOps.expand(image, (0, 0, pad_width, pad_height), fill='black')
     return padded_image
+
 
 def resize_and_pad_with_PIL(file_path: str, core_config_path: str, desired_resolution: int, target_file_path: str):
     with open(core_config_path) as core_config_file:

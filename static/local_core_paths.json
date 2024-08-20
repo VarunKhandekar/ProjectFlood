@@ -13,5 +13,6 @@
     "bangladesh_shape_outline": "/home/vkhandekar/project_flood/static/bangladesh-outline_68.geojson",
     "rainfall_path_archive": "data/Archive/BangladeshRainfall",
     "temp_rainfall_path": "/home/vkhandekar/project_flood/data/temp/",
-    "rainfall_reprojection_master_128": "/home/vkhandekar/project_flood/static/BangladeshFlood_MASTER_101_128.tif"
+    "rainfall_reprojection_master_128": "/home/vkhandekar/project_flood/static/BangladeshFlood_MASTER_101_128.tif",
+    "rerun_path": "/home/vkhandekar/project_flood/static/to_rerun.csv"
 }

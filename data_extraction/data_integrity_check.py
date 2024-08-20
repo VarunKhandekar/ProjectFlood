@@ -17,12 +17,12 @@ def check_relevant_files_exist(core_config_path: str, data_config_path: str, day
 
     # Go through flood and non-flood images.
     water_images = []
-    water_images.extend(os.listdir(data_config["non_flood_file_path"]))
-    water_images.extend(os.listdir(data_config["flood_file_path"]))
+    water_images.extend(os.listdir(data_config["non_flood_file_path_2044_2573"]))
+    water_images.extend(os.listdir(data_config["flood_file_path_2044_2573"]))
 
     soil_moisture_images = []
-    soil_moisture_images.extend(os.listdir(data_config["soil_moisture_flood_path"]))
-    soil_moisture_images.extend(os.listdir(data_config["soil_moisture_non_flood_path"]))
+    soil_moisture_images.extend(os.listdir(data_config["soil_moisture_flood_path_2044_2573"]))
+    soil_moisture_images.extend(os.listdir(data_config["soil_moisture_non_flood_path_2044_2573"]))
 
     
     for i in water_images:
@@ -33,7 +33,7 @@ def check_relevant_files_exist(core_config_path: str, data_config_path: str, day
         rainfall_file_names = [rf[:-2] + "tif" for rf in rainfall_file_names]
 
         for rf in rainfall_file_names:
-            if rf not in os.listdir(data_config["rainfall_path"]):
+            if rf not in os.listdir(data_config["rainfall_integrity_path"]):
                 # print(rf, " is missing!")
                 missing_rainfall_images.append(rf)
                 rerun_dates.append(date)
