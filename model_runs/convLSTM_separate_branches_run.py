@@ -44,6 +44,7 @@ hyperparams = {
     'transforms': transforms,
     'res': resolution
 }
+print(hyperparams)
 
 
 

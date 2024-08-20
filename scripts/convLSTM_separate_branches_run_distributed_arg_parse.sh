@@ -2,7 +2,7 @@
 #SBATCH --gres=gpu:1
 #SBATCH --mail-type=ALL # required to send email notifcations
 #SBATCH --mail-user=vk223
-#SBATCH --partition gpgpuC --gres=gpu:1
+#SBATCH --partition gpgpuC --gres=gpu:2
 #SBATCH --output=convLSTM_separate_branches_%j.out
 
 export PROJECT_FLOOD_DATA="/homes/vk223/ProjectFlood/static/imperial_data_paths.json"
@@ -25,7 +25,7 @@ echo -e "\n*********************************************************************
 python3 -V
 
 NUM_EPOCHS=(5000)
-TRAIN_BATCH_SIZES=(32)
+TRAIN_BATCH_SIZES=(64)
 LEARNING_RATES=(0.0001)
 PRECEDING_RAINFALL_DAYS=(1 3)
 DROPOUT_PROBS=(0.25 0.5)
@@ -34,8 +34,8 @@ CONV_BLOCK_LAYERS=(4)
 CONVLSTM_LAYERS=(2)
 OPTIMIZERS=('RMSprop')
 CRITERIONS=('BCELoss')
-RESOLUTIONS=(128 256)
-TRANSFORMS=(False)
+RESOLUTIONS=(256)
+TRANSFORMS=(False True)
 
 
 for num_epochs in "${NUM_EPOCHS[@]}"; do
