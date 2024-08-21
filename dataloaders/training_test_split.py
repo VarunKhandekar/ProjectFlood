@@ -143,7 +143,7 @@ def combine_training_and_validation(data_config_path: str, resolution: int):
 if __name__ == "__main__":
     # 60-20-20 SPLIT
     random.seed(42)
-    resolution = 128
+    resolution = 256
     test_ratio = 0.2
     val_ratio = 0.2
     data_config_file = os.environ["PROJECT_FLOOD_DATA"]

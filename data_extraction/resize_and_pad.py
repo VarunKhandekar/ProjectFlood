@@ -4,9 +4,24 @@ from pydrive.drive import GoogleDrive
 from shapely.geometry import box
 import pandas as pd
 import shutil
+import time
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from data_extraction.generic_helpers import *
 from data_extraction.rainfall_helpers import *
+
+
+def retry_function(func, args, kwargs, retries=3, delay=5):
+    for attempt in range(retries):
+        try:
+            return func(*args, **kwargs)
+        except Exception as exc:
+            print(f'Attempt {attempt + 1} generated an exception: {exc}')
+            if attempt + 1 < retries:
+                print(f'Retrying in {delay} seconds...')
+                time.sleep(delay)
+            else:
+                print('Maximum retries reached. Giving up.')
+                raise
 
 
 def generate_new_master(core_config_path: str, target_resolution: int):
@@ -103,11 +118,6 @@ if __name__ == "__main__":
                                  data_config['soil_moisture_flood_path_2044_2573'],
                                  data_config['soil_moisture_non_flood_path_2044_2573'],
                                  data_config['topology_path_2044_2573']]
-    target_file_paths = [data_config['non_flood_file_path'],
-                         data_config['flood_file_path'],
-                         data_config['soil_moisture_flood_path'],
-                         data_config['soil_moisture_non_flood_path'],
-                         data_config['topology_path']]
     
     target_file_paths = [f"{data_config['non_flood_file_path']}_{str(desired_resolution)}_{str(desired_resolution)}",
                          f"{data_config['flood_file_path']}_{str(desired_resolution)}_{str(desired_resolution)}",
@@ -115,6 +125,22 @@ if __name__ == "__main__":
                          f"{data_config['soil_moisture_non_flood_path']}_{str(desired_resolution)}_{str(desired_resolution)}",
                          f"{data_config['topology_path']}_{str(desired_resolution)}_{str(desired_resolution)}"]
     
+    # resize_and_pad_file_paths = [data_config['non_flood_file_path_2044_2573'],
+    #                              data_config['flood_file_path_2044_2573'],
+    #                              data_config['soil_moisture_flood_path_2044_2573'],
+    #                              data_config['soil_moisture_non_flood_path_2044_2573'],
+    #                              data_config['soil_moisture_watermask_flood_path_2044_2573'],
+    #                              data_config['soil_moisture_watermask_non_flood_path_2044_2573']]
+
+    
+    # target_file_paths = [f"{data_config['non_flood_file_path']}_{str(desired_resolution)}_{str(desired_resolution)}",
+    #                      f"{data_config['flood_file_path']}_{str(desired_resolution)}_{str(desired_resolution)}",
+    #                      f"{data_config['soil_moisture_flood_path']}_{str(desired_resolution)}_{str(desired_resolution)}",
+    #                      f"{data_config['soil_moisture_non_flood_path']}_{str(desired_resolution)}_{str(desired_resolution)}",
+    #                      f"{data_config['soil_moisture_watermask_flood_path']}_{str(desired_resolution)}_{str(desired_resolution)}",
+    #                      f"{data_config['soil_moisture_watermask_non_flood_path']}_{str(desired_resolution)}_{str(desired_resolution)}"]
+
+    # Do the resizing and padding
     for i in range(len(resize_and_pad_file_paths)):
         for f in os.listdir(resize_and_pad_file_paths[i]):
             raw_file_path = os.path.join(resize_and_pad_file_paths[i], f)
@@ -123,9 +149,12 @@ if __name__ == "__main__":
             resize_and_pad_with_PIL(raw_file_path, os.environ["PROJECT_FLOOD_CORE_PATHS"], desired_resolution, target_file_path)
     
     # Combine soil moisture and water images into one folder
-    for i in range(len(target_file_paths[:-1])):
+    for i in range(len(target_file_paths)):
+        if 'Topology' in target_file_paths[i]:
+            continue
         # Water images
-        if i < 2:
+        if 'FloodImages' in target_file_paths[i]:
+        # if i < 2:
             combo_path = f"{data_config['water_image_path']}_{str(desired_resolution)}_{str(desired_resolution)}"
             os.makedirs(combo_path, exist_ok=True)
             for f in os.listdir(target_file_paths[i]):
@@ -133,6 +162,13 @@ if __name__ == "__main__":
                 destination = os.path.join(combo_path, f)
                 shutil.copy(source, destination)
         # Soil Moisture images
+        elif 'watermask' in target_file_paths[i]:
+            combo_path = f"{data_config['soil_moisture_watermask_combo_path']}_{str(desired_resolution)}_{str(desired_resolution)}"
+            os.makedirs(combo_path, exist_ok=True)
+            for f in os.listdir(target_file_paths[i]):
+                source = os.path.join(target_file_paths[i], f)
+                destination = os.path.join(combo_path, f)
+                shutil.copy(source, destination)
         else:
             combo_path = f"{data_config['soil_moisture_combo_path']}_{str(desired_resolution)}_{str(desired_resolution)}"
             os.makedirs(combo_path, exist_ok=True)
@@ -142,7 +178,7 @@ if __name__ == "__main__":
                 shutil.copy(source, destination)
 
     
-    # # Tweak rainfall
+    # Tweak rainfall
     gauth = GoogleAuth()
     with open(os.environ["PROJECT_FLOOD_CORE_PATHS"]) as core_config_file:
         core_config = json.load(core_config_file)
@@ -156,14 +192,24 @@ if __name__ == "__main__":
     bangladesh_bounding_box = box(*bangladesh_shape.bounds)
 
 
-    rainfall_archive = data_config['rainfall_path_archive']
-
-    filedates = [pd.Timestamp(int(i[:4]), 1, 1) + pd.Timedelta(days=int(i[4:7]) - 1, hours=int(i[8:10])) 
-                 for i in os.listdir(rainfall_archive)]
+    rainfall_archive = data_config['rainfall_integrity_path'] #list of files that we want to get from GDrive
+    big_filedates = [pd.Timestamp(int(i[:4]), 1, 1) + pd.Timedelta(days=int(i[4:7]) - 1, hours=int(i[8:10])) 
+                        for i in os.listdir(rainfall_archive)]
+    
+    target_directory = f"{data_config['rainfall_path']}_{desired_resolution}_{desired_resolution}"
+    if not os.path.exists(target_directory):
+        os.makedirs(target_directory)
+    small_filedates = [pd.Timestamp(int(i[:4]), 1, 1) + pd.Timedelta(days=int(i[4:7]) - 1, hours=int(i[8:10])) 
+                        for i in os.listdir(target_directory)]
+    
+    filedates = [i for i in big_filedates if i not in small_filedates]
     print(len(filedates))
     batch_size = 10
 
+    # filedates = [i for i in os.listdir("/home/vkhandekar/project_flood/data/BangladeshRainfall_256_256") if i not in os.listdir("/home/vkhandekar/project_flood/data/BangladeshRainfall_128_128")]
+    # filedates = [pd.Timestamp(int(i[:4]), 1, 1) + pd.Timedelta(days=int(i[4:7]) - 1, hours=int(i[8:10])) for i in filedates]
     max_workers = 6
+
     with ProcessPoolExecutor(max_workers=max_workers) as executor:
         futures = [executor.submit(process_rainfall_batch, filedates[i:i+batch_size], drive, bangladesh_bounding_box) for i in range(0, len(filedates), batch_size)]
         
@@ -173,3 +219,16 @@ if __name__ == "__main__":
                 # print(f'Result: {result}')
             except Exception as exc:
                 print(f'Generated an exception: {exc}')
+
+    # with ProcessPoolExecutor(max_workers=max_workers) as executor:
+    #     futures = [
+    #         executor.submit(retry_function, process_rainfall_batch, (filedates[i:i + batch_size], drive, bangladesh_bounding_box), {}, retries=3, delay=5) 
+    #             for i in range(0, len(filedates), batch_size)
+    #         ]
+
+    #     for future in as_completed(futures):
+    #         try:
+    #             result = future.result()
+    #             # print(f'Result: {result}')
+    #         except Exception as exc:
+    #             print(f'Final failure, generated an exception: {exc}')
