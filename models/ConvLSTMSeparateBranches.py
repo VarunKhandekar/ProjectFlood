@@ -87,7 +87,7 @@ class ConvLSTMSeparateBranches(nn.Module):
         super(ConvLSTMSeparateBranches, self).__init__()
         self.preceding_rainfall_days = preceding_rainfall_days
         self.forecast_rainfall_days = forecast_rainfall_days
-        self.rainfall_sequence_length = preceding_rainfall_days + forecast_rainfall_days
+        self.rainfall_sequence_length = (preceding_rainfall_days + forecast_rainfall_days)*8
         self.dropout_prob = dropout_prob
         self.name = None
 
