@@ -14,7 +14,7 @@ def plot_model_output_vs_label(outputs, labels, labels_flooded, filename):
     for i in range(num_images):
         # Display true labels
         ax = axes[0, i]
-        ax.imshow(labels[i], cmap='gray', vmin=0, vmax=1)  # Assuming grayscale images; change cmap if using color images
+        ax.imshow(labels[i], cmap='gray', vmin=0, vmax=1)  # grayscale
         ax.set_xticks([])
         ax.set_yticks([])
         if i == 0:
