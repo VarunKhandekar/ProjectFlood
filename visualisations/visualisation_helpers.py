@@ -1,5 +1,6 @@
 import os
 import json
+import re
 import matplotlib.pyplot as plt
 
 
@@ -55,7 +56,8 @@ def plot_loss_chart(losses, epochs, filename, hyperparams):
     plt.ylim(0, 1)
 
     hyperparams_text = '\n'.join([f'{key}: {value}' for key, value in hyperparams.items()])
-    resolution = filename[(filename.rfind('_') + 1):filename.rfind('.png')]
+    resolution_match = re.search(r'res(\d+)', filename)
+    resolution = int(resolution_match.group(1))
     hyperparams_text = hyperparams_text + f"\nResolution: {resolution}"
     # plt.figtext(0.15, -0.2, "Hyperparameters:\n" + hyperparams_text, fontsize=9, 
     #             bbox=dict(boxstyle="round,pad=0.3", edgecolor='gray', facecolor='white'))

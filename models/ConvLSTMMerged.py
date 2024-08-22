@@ -99,13 +99,10 @@ class ConvLSTMMerged(nn.Module):
 
         final_conv_kernel_size = 5
         self.final_conv = nn.Sequential(
-            nn.Conv2d(output_channels*3, output_channels*2, kernel_size=final_conv_kernel_size, padding= final_conv_kernel_size // 2),
-            nn.BatchNorm2d(output_channels*2),
+            nn.Conv2d(output_channels, output_channels//2, kernel_size=final_conv_kernel_size, padding= final_conv_kernel_size // 2),
+            nn.BatchNorm2d(output_channels//2),
             nn.ReLU(),
-            nn.Conv2d(output_channels*2, output_channels, kernel_size=final_conv_kernel_size, padding= final_conv_kernel_size // 2),
-            nn.BatchNorm2d(output_channels),
-            nn.ReLU(),
-            nn.Conv2d(output_channels, 1, kernel_size=1),
+            nn.Conv2d(output_channels//2, 1, kernel_size=1),
             nn.Sigmoid()
         )
 
@@ -115,15 +112,9 @@ class ConvLSTMMerged(nn.Module):
         topology = x[:, self.rainfall_sequence_length:self.rainfall_sequence_length+1].view(b, 1, h, w)
         soil_moisture = x[:, self.rainfall_sequence_length+1:self.rainfall_sequence_length+2].view(b, 1, h, w)
         
-        # topology_out = self.conv1(topology)
-        # soil_moisture_out = self.conv2(soil_moisture)
-
-        # additional_input_tensor = torch.cat([topology_out, soil_moisture_out], dim=1)
         additional_input_tensor = torch.cat([topology, soil_moisture], dim=1)
-        # rainfall_out = self.convlstm(rainfall_sequence, additional_input_tensor)
         convlstm_out = self.convlstm(rainfall_sequence, additional_input_tensor)
 
-        # combined = torch.cat([rainfall_out, topology_out, soil_moisture_out], dim=1)
         output = self.final_conv(convlstm_out)
         output = output.squeeze(1)
         return output
