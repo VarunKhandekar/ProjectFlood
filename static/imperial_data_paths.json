@@ -5,6 +5,9 @@
     "soil_moisture_non_flood_path_2044_2573": "/vol/bitbucket/vk223/project_flood/data/BangladeshSoilMoistureNonFlood_2044_2573",
     "topology_path_2044_2573": "/vol/bitbucket/vk223/project_flood/data/Topology_2044_2573",
 
+    "soil_moisture_watermask_flood_path_2044_2573": "/home/vkhandekar/project_flood/data/BangladeshSoilMoisture_watermask_2044_2573",
+    "soil_moisture_watermask_non_flood_path_2044_2573": "/home/vkhandekar/project_flood/data/BangladeshSoilMoistureNonFlood_watermask_2044_2573",
+
     "rainfall_path_archive": "/vol/bitbucket/vk223/project_flood/data/BangladeshRainfall_2044_2573",
     "temp_rainfall_path": "/vol/bitbucket/vk223/project_flood/data/temp/",
     "rainfall_integrity_path": "/vol/bitbucket/vk223/project_flood/data/BangladeshRainfall_256_256",
@@ -17,6 +20,10 @@
     "soil_moisture_non_flood_path": "/vol/bitbucket/vk223/project_flood/data/BangladeshSoilMoistureNonFlood",
     "soil_moisture_combo_path": "/vol/bitbucket/vk223/project_flood/data/BangladeshSoilMoistureCombo",
     "topology_path": "/vol/bitbucket/vk223/project_flood/data/Topology",
+    
+    "soil_moisture_watermask_flood_path": "/home/vkhandekar/project_flood/data/BangladeshSoilMoisture_watermask",
+    "soil_moisture_watermask_non_flood_path": "/home/vkhandekar/project_flood/data/BangladeshSoilMoistureNonFlood_watermask",
+    "soil_moisture_watermask_combo_path": "/home/vkhandekar/project_flood/data/BangladeshSoilMoistureCombo_watermask",
 
     "training_labels_path": "/vol/bitbucket/vk223/project_flood/data/BangladeshWaterImagesTraining",
     "validation_labels_path": "/vol/bitbucket/vk223/project_flood/data/BangladeshWaterImagesValidation",
