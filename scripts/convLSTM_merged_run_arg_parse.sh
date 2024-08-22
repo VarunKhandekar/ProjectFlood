@@ -11,7 +11,7 @@ export PROJECT_FLOOD_REPO_DIR="/homes/vk223/ProjectFlood"
 source /vol/bitbucket/vk223/project_flood/projectfloodvenv/bin/activate
 source /vol/cuda/11.8.0/setup.sh
 export PYTHONPATH=$PYTHONPATH:${PROJECT_FLOOD_REPO_DIR}/
-export PROJECT_FLOOD_SCRIPTPATH=model_runs/convLSTM_separate_branches_run_arg_parse.py
+export PROJECT_FLOOD_SCRIPTPATH=model_runs/convLSTM_merged_run_arg_parse.py
 export PROJECT_FLOOD_SCRIPTLOC=${PROJECT_FLOOD_REPO_DIR}/${PROJECT_FLOOD_SCRIPTPATH}
 TERM=vt100 
 #TERM=xterm

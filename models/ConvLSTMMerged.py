@@ -2,25 +2,25 @@ import torch
 import torch.nn as nn
 
 
-class ConvBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, num_layers, dropout_prob):
-        super(ConvBlock, self).__init__()
+# class ConvBlock(nn.Module):
+#     def __init__(self, in_channels, out_channels, num_layers, dropout_prob):
+#         super(ConvBlock, self).__init__()
 
-        layers = []
-        for _ in range(num_layers):
-            layers.extend([
-                nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1),
-                nn.BatchNorm2d(out_channels),
-                nn.ReLU(),
-                nn.Dropout2d(dropout_prob)
-            ])
-            in_channels = out_channels # Update layers for next round
+#         layers = []
+#         for _ in range(num_layers):
+#             layers.extend([
+#                 nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1),
+#                 nn.BatchNorm2d(out_channels),
+#                 nn.ReLU(),
+#                 nn.Dropout2d(dropout_prob)
+#             ])
+#             in_channels = out_channels # Update layers for next round
         
-        self.conv = nn.Sequential(*layers)
+#         self.conv = nn.Sequential(*layers)
 
     
-    def forward(self, x):
-        return self.conv(x)
+#     def forward(self, x):
+#         return self.conv(x)
 
 
 class ConvLSTMCell(nn.Module):
