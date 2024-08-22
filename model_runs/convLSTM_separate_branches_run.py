@@ -16,14 +16,14 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print('Device: {0}'.format(device))
 torch.manual_seed(42)
 
-num_epochs = 8000
+num_epochs = 4000
 train_batch_size = 32
 learning_rate = 0.001
 preceding_rainfall_days = 1
 dropout_prob = 0.3
 output_channels = 16
-conv_block_layers = 4
-convLSTM_layers = 2
+conv_block_layers = 2
+convLSTM_layers = 1
 optimizer_str = 'RMSprop'
 criterion_str = 'BCELoss'
 resolution = 256

@@ -11,7 +11,7 @@ export PROJECT_FLOOD_REPO_DIR="/homes/vk223/ProjectFlood"
 source /vol/bitbucket/vk223/project_flood/projectfloodvenv/bin/activate
 source /vol/cuda/11.8.0/setup.sh
 export PYTHONPATH=$PYTHONPATH:${PROJECT_FLOOD_REPO_DIR}/
-export PROJECT_FLOOD_SCRIPTPATH=model_runs/convLSTM_separate_branches_distributed_run_arg_parse.py
+export PROJECT_FLOOD_SCRIPTPATH=model_runs/convLSTM_separate_branches_run_distributed_arg_parse.py
 export PROJECT_FLOOD_SCRIPTLOC=${PROJECT_FLOOD_REPO_DIR}/${PROJECT_FLOOD_SCRIPTPATH}
 TERM=vt100 
 #TERM=xterm
@@ -24,18 +24,18 @@ echo -e "\n*********************************************************************
 /usr/bin/nvidia-smi
 python3 -V
 
-NUM_EPOCHS=(5000)
-TRAIN_BATCH_SIZES=(64)
-LEARNING_RATES=(0.0001)
+NUM_EPOCHS=(500)
+TRAIN_BATCH_SIZES=(16 32)
+LEARNING_RATES=(0.001 0.0001)
 PRECEDING_RAINFALL_DAYS=(1 3)
-DROPOUT_PROBS=(0.25 0.5)
-OUTPUT_CHANNELS=(16)
-CONV_BLOCK_LAYERS=(4)
-CONVLSTM_LAYERS=(2)
+DROPOUT_PROBS=(0.3)
+OUTPUT_CHANNELS=(4 8)
+CONV_BLOCK_LAYERS=(2)
+CONVLSTM_LAYERS=(1)
 OPTIMIZERS=('RMSprop')
 CRITERIONS=('BCELoss')
 RESOLUTIONS=(256)
-TRANSFORMS=(False True)
+TRANSFORMS=('False')
 
 
 for num_epochs in "${NUM_EPOCHS[@]}"; do

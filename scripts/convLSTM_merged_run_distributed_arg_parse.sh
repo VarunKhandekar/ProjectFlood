@@ -2,7 +2,7 @@
 #SBATCH --gres=gpu:1
 #SBATCH --mail-type=ALL # required to send email notifcations
 #SBATCH --mail-user=vk223
-#SBATCH --partition gpgpuC --gres=gpu:1
+#SBATCH --partition gpgpuC --gres=gpu:2
 #SBATCH --output=convLSTM_separate_branches_%j.out
 
 export PROJECT_FLOOD_DATA="/homes/vk223/ProjectFlood/static/imperial_data_paths.json"
@@ -11,7 +11,7 @@ export PROJECT_FLOOD_REPO_DIR="/homes/vk223/ProjectFlood"
 source /vol/bitbucket/vk223/project_flood/projectfloodvenv/bin/activate
 source /vol/cuda/11.8.0/setup.sh
 export PYTHONPATH=$PYTHONPATH:${PROJECT_FLOOD_REPO_DIR}/
-export PROJECT_FLOOD_SCRIPTPATH=model_runs/convLSTM_separate_branches_run_arg_parse.py
+export PROJECT_FLOOD_SCRIPTPATH=model_runs/convLSTM_merged_run_distributed_arg_parse.py
 export PROJECT_FLOOD_SCRIPTLOC=${PROJECT_FLOOD_REPO_DIR}/${PROJECT_FLOOD_SCRIPTPATH}
 TERM=vt100 
 #TERM=xterm
@@ -24,12 +24,12 @@ echo -e "\n*********************************************************************
 /usr/bin/nvidia-smi
 python3 -V
 
-NUM_EPOCHS=(5000)
-TRAIN_BATCH_SIZES=(32)
-LEARNING_RATES=(0.001)
+NUM_EPOCHS=(500)
+TRAIN_BATCH_SIZES=(16 32)
+LEARNING_RATES=(0.001 0.0001)
 PRECEDING_RAINFALL_DAYS=(1 3)
 DROPOUT_PROBS=(0.3)
-OUTPUT_CHANNELS=(16)
+OUTPUT_CHANNELS=(4 8)
 CONV_BLOCK_LAYERS=(2)
 CONVLSTM_LAYERS=(1)
 OPTIMIZERS=('RMSprop')

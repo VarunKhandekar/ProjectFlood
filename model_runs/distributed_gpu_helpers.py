@@ -102,7 +102,7 @@ def train_model_dist(rank: int, world_size: int, data_config_path: str, model,  
             print(f'Epoch {epoch}/{num_epochs}, Loss: {loss.item():.4f}, Val Loss: {validation_epoch_average_loss:.4f}')
 
         # Save model snapshot
-        if epoch % 1000 == 0 and rank == 0:
+        if epoch % 500 == 0 and rank == 0:
             save_checkpoint(model, optimizer, epoch, os.path.join(data_config["saved_models_path"], f"{get_attribute(model, 'name')}_{epoch}.pt"), hyperparams)
     
     # Save final model
