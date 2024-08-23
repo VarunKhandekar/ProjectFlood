@@ -31,7 +31,7 @@ def generate_model_name(base_name, date_today, **kwargs):
 
 def train_model(data_config_path: str, model,  criterion_type: str, optimizer_type: str, lr, num_epochs: int, device, 
                 plot_training_images: bool, plot_losses: bool, 
-                train_dataloader: DataLoader, val_dataloader: DataLoader = None):
+                train_dataloader: DataLoader, val_dataloader: DataLoader = None, is_final: bool = False):
 
     hyperparams = {
         'num_epochs': num_epochs,
@@ -93,30 +93,34 @@ def train_model(data_config_path: str, model,  criterion_type: str, optimizer_ty
         if epoch % 1000 == 0:
             save_checkpoint(model, optimizer, epoch, os.path.join(data_config["saved_models_path"], f"{model.name}_{epoch}.pt"), hyperparams)
     
-    # Save final model            
-    save_checkpoint(model, optimizer, epoch, os.path.join(data_config["saved_models_path"], f"{model.name}_{epoch}.pt"), hyperparams)
+    # Save end model
+    if is_final:
+        save_checkpoint(model, optimizer, epoch, os.path.join(data_config["saved_models_path"], f"{model.name}_{epoch}_FINAL.pt"), hyperparams)
+    else:
+        save_checkpoint(model, optimizer, epoch, os.path.join(data_config["saved_models_path"], f"{model.name}_{epoch}.pt"), hyperparams)
 
     # PLOT EXAMPLE IMAGES ON VALIDATION
     # Select 8 samples
     if plot_training_images:
-        model.eval()
-        with torch.no_grad():
-            for inputs, targets, flooded in val_dataloader:
-                inputs, targets = inputs.to(device, dtype=torch.float32), targets.to(device, dtype=torch.float32)
-                # Sort the tensors according to the sorted indices
-                _, sorted_indices = torch.sort(flooded) #Arranges so we have non-flooded followed by flooded
-                inputs = inputs[sorted_indices]
-                targets = targets[sorted_indices]
-                flooded = flooded[sorted_indices]
-                outputs = model(inputs)
+        if val_dataloader:
+            model.eval()
+            with torch.no_grad():
+                for inputs, targets, flooded in val_dataloader:
+                    inputs, targets = inputs.to(device, dtype=torch.float32), targets.to(device, dtype=torch.float32)
+                    # Sort the tensors according to the sorted indices
+                    _, sorted_indices = torch.sort(flooded) #Arranges so we have non-flooded followed by flooded
+                    inputs = inputs[sorted_indices]
+                    targets = targets[sorted_indices]
+                    flooded = flooded[sorted_indices]
+                    outputs = model(inputs)
 
-                selected_outputs = outputs[:8]
-                selected_labels = targets[:8]
-                selected_labels_flooded = flooded[:8]
-                break
-            image_examples_filename = os.path.join(data_config["training_plots_path"], f"outputs_vs_labels_{model.name}.png")
-            plot_model_output_vs_label_square(selected_outputs, selected_labels, selected_labels_flooded, image_examples_filename)
-            print("Training chart image saved!")
+                    selected_outputs = outputs[:8]
+                    selected_labels = targets[:8]
+                    selected_labels_flooded = flooded[:8]
+                    break
+                image_examples_filename = os.path.join(data_config["validation_plots_path"], f"outputs_vs_labels_{model.name}.png")
+                plot_model_output_vs_label_square(selected_outputs, selected_labels, selected_labels_flooded, image_examples_filename)
+                print("Validation chart image saved!")
     
     # PLOT LOSS CHART
     if plot_losses:

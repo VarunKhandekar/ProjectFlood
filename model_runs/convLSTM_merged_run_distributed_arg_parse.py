@@ -98,7 +98,7 @@ if __name__ == "__main__":
     test_batch_size = 1
 
     val_dataloader = get_dataloader("validation_labels_path", resolution=resolution, preceding_rainfall_days=preceding_rainfall_days, forecast_rainfall_days=1, 
-                                    transform=None, batch_size=validation_batch_size, shuffle=False, num_workers=4)
+                                    transform=None, batch_size=validation_batch_size, shuffle=True, num_workers=4)
     test_dataloader = get_dataloader("test_labels_path", resolution=resolution, preceding_rainfall_days=preceding_rainfall_days, forecast_rainfall_days=1, 
                                     transform=None, batch_size=test_batch_size, shuffle=False, num_workers=4)
     
