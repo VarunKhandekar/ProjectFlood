@@ -33,7 +33,7 @@
     "saved_models_path": "/home/vkhandekar/project_flood/models/saved_models",
     "model_results_path": "/home/vkhandekar/project_flood/model_runs/evaluation_results",
 
-    "training_plots_path": "/home/vkhandekar/project_flood/visualisations/training_images",
+    "validation_plots_path": "/home/vkhandekar/project_flood/visualisations/validation_images",
     "loss_plots_path": "/home/vkhandekar/project_flood/visualisations/loss_charts",
     "project_report_visuals": "/home/vkhandekar/project_flood/visualisations/project_report_visuals",
 
