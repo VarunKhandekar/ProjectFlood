@@ -10,7 +10,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 # from optuna.integration import PyTorchLightningPruningCallback
 from dataloaders.convLSTM_dataset import *
 from models.ConvLSTMSeparateBranches import *
-from model_runs.model_evaluation_helpers import *
+from final_evaluation.model_evaluation_helpers import *
 from visualisations.visualisation_helpers import *
 from model_runs.model_run_helpers import *
 
@@ -82,7 +82,7 @@ def train_model_dist(rank: int, world_size: int, data_config_path: str, model,  
             loss.backward()
             optimizer.step()
             # last_outputs, last_labels = torch.sigmoid(outputs), labels # apply sigmoid for charting purposes
-            last_outputs, last_labels, last_flooded = outputs, labels, flooded
+            # last_outputs, last_labels, last_flooded = outputs, labels, flooded
 
             training_epoch_loss += loss.item()
             num_batches += 1
@@ -109,19 +109,30 @@ def train_model_dist(rank: int, world_size: int, data_config_path: str, model,  
     if rank == 0:         
         save_checkpoint(model, optimizer, epoch, os.path.join(data_config["saved_models_path"], f"{get_attribute(model, 'name')}_{epoch}.pt"), hyperparams)
 
-    # PLOT EXAMPLE IMAGES ON TRAINING
-    # Select only 4 samples from the last batch
+    # PLOT EXAMPLE IMAGES ON VALIDATION
+    # Select 8 samples from validation batch
     if rank == 0:
         if plot_training_images:
-            selected_outputs = last_outputs[:4]
-            selected_labels = last_labels[:4]
-            selected_labels_flooded = last_flooded[:4]
-            image_examples_filename = os.path.join(data_config["training_plots_path"], f"outputs_vs_labels_{get_attribute(model, 'name')}.png")
-            plot_model_output_vs_label(selected_outputs, selected_labels, selected_labels_flooded, image_examples_filename)
-            print("Training chart image saved!")
+            model.eval()
+            with torch.no_grad():
+                for inputs, targets, flooded in val_dataloader:
+                    inputs, targets = inputs.to(rank, dtype=torch.float32), targets.to(rank, dtype=torch.float32)
+                    # Sort the tensors according to the sorted indices
+                    _, sorted_indices = torch.sort(flooded) #Arranges so we have non-flooded followed by flooded
+                    inputs = inputs[sorted_indices]
+                    targets = targets[sorted_indices]
+                    flooded = flooded[sorted_indices]
+                    outputs = model(inputs)
+
+                    selected_outputs = outputs[:8]
+                    selected_labels = targets[:8]
+                    selected_labels_flooded = flooded[:8]
+                    break
+                image_examples_filename = os.path.join(data_config["training_plots_path"], f"outputs_vs_labels_{get_attribute(model, 'name')}.png")
+                plot_model_output_vs_label_square(selected_outputs, selected_labels, selected_labels_flooded, image_examples_filename)
+                print("Training chart image saved!")
         
         # PLOT LOSS CHART
-        # print(validation_losses)
         if plot_losses:
             losses = []
             losses.append(training_losses)

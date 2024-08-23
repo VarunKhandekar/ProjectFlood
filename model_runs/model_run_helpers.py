@@ -1,6 +1,6 @@
 import torch
 import torch.optim as optim
-import csv
+
 import datetime
 from typing import Literal
 from torch.utils.data import DataLoader
@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader
 # from optuna.integration import PyTorchLightningPruningCallback
 from dataloaders.convLSTM_dataset import *
 from models.ConvLSTMSeparateBranches import *
-from model_runs.model_evaluation_helpers import *
+from models.ConvLSTMMerged import *
 from visualisations.visualisation_helpers import *
 
 
@@ -70,7 +70,7 @@ def train_model(data_config_path: str, model,  criterion_type: str, optimizer_ty
             loss.backward()
             optimizer.step()
             # last_outputs, last_labels = torch.sigmoid(outputs), labels # apply sigmoid for charting purposes
-            last_outputs, last_labels, last_flooded = outputs, labels, flooded
+            # last_outputs, last_labels, last_flooded = outputs, labels, flooded
 
             training_epoch_loss += loss.item()
             num_batches += 1
@@ -96,18 +96,29 @@ def train_model(data_config_path: str, model,  criterion_type: str, optimizer_ty
     # Save final model            
     save_checkpoint(model, optimizer, epoch, os.path.join(data_config["saved_models_path"], f"{model.name}_{epoch}.pt"), hyperparams)
 
-    # PLOT EXAMPLE IMAGES ON TRAINING
-    # Select only 4 samples from the last batch
+    # PLOT EXAMPLE IMAGES ON VALIDATION
+    # Select 8 samples
     if plot_training_images:
-        selected_outputs = last_outputs[:4]
-        selected_labels = last_labels[:4]
-        selected_labels_flooded = last_flooded[:4]
-        image_examples_filename = os.path.join(data_config["training_plots_path"], f"outputs_vs_labels_{model.name}.png")
-        plot_model_output_vs_label(selected_outputs, selected_labels, selected_labels_flooded, image_examples_filename)
-        print("Training chart image saved!")
+        model.eval()
+        with torch.no_grad():
+            for inputs, targets, flooded in val_dataloader:
+                inputs, targets = inputs.to(device, dtype=torch.float32), targets.to(device, dtype=torch.float32)
+                # Sort the tensors according to the sorted indices
+                _, sorted_indices = torch.sort(flooded) #Arranges so we have non-flooded followed by flooded
+                inputs = inputs[sorted_indices]
+                targets = targets[sorted_indices]
+                flooded = flooded[sorted_indices]
+                outputs = model(inputs)
+
+                selected_outputs = outputs[:8]
+                selected_labels = targets[:8]
+                selected_labels_flooded = flooded[:8]
+                break
+            image_examples_filename = os.path.join(data_config["training_plots_path"], f"outputs_vs_labels_{model.name}.png")
+            plot_model_output_vs_label_square(selected_outputs, selected_labels, selected_labels_flooded, image_examples_filename)
+            print("Training chart image saved!")
     
     # PLOT LOSS CHART
-    # print(validation_losses)
     if plot_losses:
         losses = []
         losses.append(training_losses)
@@ -133,7 +144,7 @@ def validate_model(model, dataloader, criterion, device):
 
 
 def save_checkpoint(model, optimizer, epoch, filepath, hyperparams):
-    model_to_save = model.module if isinstance(model, torch.nn.DataParallel) else model
+    model_to_save = model.module if isinstance(model, (torch.nn.DataParallel, torch.nn.parallel.DistributedDataParallel)) else model
     torch.save({
         'model_type': model_to_save.__class__.__name__,
         'epoch': epoch,
@@ -141,69 +152,3 @@ def save_checkpoint(model, optimizer, epoch, filepath, hyperparams):
         'optimizer_state_dict': optimizer.state_dict(),
         'hyperparams': hyperparams
     }, filepath)
-
-
-def load_checkpoint(filepath):
-    checkpoint = torch.load(filepath)
-    hyperparams = checkpoint['hyperparams']
-    if checkpoint['model_type'] == "ConvLSTMSeparateBranches":
-        model = ConvLSTMSeparateBranches(hyperparams['preceding_rainfall_days'], 1,  
-                                         hyperparams['output_channels'], 
-                                         hyperparams['conv_block_layers'],
-                                         hyperparams['convLSTM_layers'],
-                                         hyperparams['dropout_prob'])
-        #TODO add the name as an attribute here?
-    optimizer = getattr(optim, hyperparams['optimizer_type'])(model.parameters(), lr=hyperparams['learning_rate'])
-
-    #Set up model and optimizer with values from that checkpoint
-    model.load_state_dict(checkpoint['model_state_dict'])
-    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-    return model, optimizer, checkpoint['epoch'], hyperparams
-
-
-def evaluate_model(data_config_path, model, dataloader, criterion_str, device, epoch, model_run_date):
-    model = model.to(device)
-    model.eval()
-    total_loss = 0
-    total, correct = 0, 0
-    metric_accumulator = {name: 0 for name in ["kl_div", "rmse", "mae", "psnr", "ssim", "fid"]}
-    criterion = getattr(nn, criterion_str)()
-
-    with torch.no_grad():
-        for inputs, labels in dataloader:
-            inputs, labels = inputs.to(device, dtype=torch.float32), labels.to(device, dtype=torch.float32)
-            outputs = model(inputs)
-            total_loss += criterion(outputs, labels).item()
-            logits = torch.sigmoid(outputs)
-            #TODO ADD CROPPING HERE
-            predicted = logits > 0.5
-            total += labels.size(0)
-            correct += (predicted == labels.to(device)).sum().item()
-
-            # Calculate metrics for each batch and accumulate
-            batch_metrics = calculate_metrics(outputs, labels)
-            for key in metric_accumulator:
-                metric_accumulator[key] += batch_metrics[key]
-
-    # Average the accumulated metrics over all batches
-    for key in metric_accumulator:
-        metric_accumulator[key] /= len(dataloader)
-
-    accuracy = 100 * correct / total if total > 0 else 0
-    average_loss = total_loss / len(dataloader)
-
-    with open(data_config_path) as data_config_file:
-        data_config = json.load(data_config_file)
-
-    with open(os.path.join(data_config["model_results_path"], f"{model.name}_{epoch}_{model_run_date}_evaluarion_results.csv"), mode='w', newline='') as file:
-        writer = csv.writer(file)
-        # Write headers
-        headers = ['Metric', 'Value']
-        writer.writerow(headers)
-        # Write data
-        writer.writerow(['Accuracy', accuracy])
-        writer.writerow(['Average Loss', average_loss])
-        for key, value in metric_accumulator.items():
-            writer.writerow([key, value])
-    return accuracy, average_loss, metric_accumulator
-
