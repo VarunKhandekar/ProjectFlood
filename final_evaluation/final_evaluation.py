@@ -66,14 +66,29 @@ if __name__=="__main__":
                     break
             if len(merged_flooded_images) >= 4 and len(merged_non_flooded_images) >= 4:
                 break
+        
+        with open(os.environ["PROJECT_FLOOD_CORE_PATHS"]) as core_config_file:
+            core_config = json.load(core_config_file)
+        dimension_string = core_config[f"rainfall_reprojection_master_256"]
+        match = re.search(r'_(\d+)_(\d+)\.tif$', dimension_string)
+        new_dimension_right, new_dimension_bottom = int(match.group(1)), int(match.group(2))
+
 
         selected_sep_branch_outputs = [img[0] for img in sep_branch_flooded_images + sep_branch_non_flooded_images]
+        selected_sep_branch_outputs = [i[:new_dimension_bottom, :new_dimension_right] for i in selected_sep_branch_outputs] #crop
+
+
         selected_merged_outputs = [img[0] for img in merged_flooded_images + merged_non_flooded_images]
+        selected_merged_outputs = [i[:new_dimension_bottom, :new_dimension_right] for i in selected_merged_outputs] #crop
 
         model_names = ['Branched', 'Merged']
         selected_model_outputs = [selected_sep_branch_outputs, selected_merged_outputs]
+
         selected_targets = [img[1] for img in sep_branch_flooded_images + sep_branch_non_flooded_images]
-        selected_targets_flooded = [img[2] for img in sep_branch_flooded_images + sep_branch_non_flooded_images]
+        selected_targets = [i[:new_dimension_bottom, :new_dimension_right] for i in selected_targets] #crop
+
+
+        selected_targets_flooded = [img[2] for img in sep_branch_flooded_images + sep_branch_non_flooded_images] #boolean for flooded or not
 
         # Do plotting
         with open(os.environ["PROJECT_FLOOD_DATA"]) as data_config_file:

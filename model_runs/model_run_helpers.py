@@ -92,6 +92,7 @@ def train_model(data_config_path: str, model,  criterion_type: str, optimizer_ty
             validation_losses.append(validation_epoch_average_loss)
             if validation_epoch_average_loss < best_val_loss:
                 best_epoch = epoch
+                best_val_loss = validation_epoch_average_loss
 
         if epoch % 100 == 0:
             print(f'Epoch {epoch}/{num_epochs}, Loss: {loss.item():.4f}, Val Loss: {validation_epoch_average_loss:.4f}')
