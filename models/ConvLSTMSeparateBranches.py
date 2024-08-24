@@ -1,3 +1,10 @@
+######################
+# Code for ConvLSTM implementation
+# Ref: https://github.com/rogertrullo/pytorch_convlstm/
+
+# This has been adapted using the above repo as a base to work from
+######################
+
 import torch
 import torch.nn as nn
 

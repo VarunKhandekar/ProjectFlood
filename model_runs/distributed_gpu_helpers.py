@@ -119,21 +119,42 @@ def train_model_dist(rank: int, world_size: int, data_config_path: str, model,  
             if val_dataloader:
                 model.eval()
                 with torch.no_grad():
+                    size = 4
+                    flooded_images = []
+                    non_flooded_images = []
+                
                     for inputs, targets, flooded in val_dataloader:
                         inputs, targets = inputs.to(rank, dtype=torch.float32), targets.to(rank, dtype=torch.float32)
-                        # Sort the tensors according to the sorted indices
-                        _, sorted_indices = torch.sort(flooded) #Arranges so we have non-flooded followed by flooded
-                        inputs = inputs[sorted_indices]
-                        targets = targets[sorted_indices]
-                        flooded = flooded[sorted_indices]
+                        # # Sort the tensors according to the sorted indices
+                        # _, sorted_indices = torch.sort(flooded) #Arranges so we have non-flooded followed by flooded
+                        # inputs = inputs[sorted_indices]
+                        # targets = targets[sorted_indices]
+                        # flooded = flooded[sorted_indices]
                         outputs = model(inputs)
 
-                        selected_outputs = outputs[:8]
-                        selected_labels = targets[:8]
-                        selected_labels_flooded = flooded[:8]
-                        break
+                        for i in range(len(flooded)):
+                            if flooded[i] == 1 and len(flooded_images) < size:
+                                flooded_images.append((outputs[i], targets[i], flooded[i]))
+                            elif flooded[i] == 0 and len(non_flooded_images) < size:
+                                non_flooded_images.append((outputs[i], targets[i], flooded[i]))
+                            
+                            # Stop if we've collected 4 images in each category
+                            if len(flooded_images) >= size and len(non_flooded_images) >= size:
+                                break
+
+                        if len(flooded_images) >= size and len(non_flooded_images) >= size:
+                            break
+
+                        # selected_outputs = outputs[:8]
+                        # selected_targets = targets[:8]
+                        # selected_targets_flooded = flooded[:8]
+                        # break
+                    selected_outputs = [img[0] for img in flooded_images + non_flooded_images]
+                    selected_targets = [img[1] for img in flooded_images + non_flooded_images]
+                    selected_targets_flooded = [img[2] for img in flooded_images + non_flooded_images]
+
                     image_examples_filename = os.path.join(data_config["validation_plots_path"], f"outputs_vs_labels_{get_attribute(model, 'name')}.png")
-                    plot_model_output_vs_label_square(selected_outputs, selected_labels, selected_labels_flooded, image_examples_filename)
+                    plot_model_output_vs_label_square(selected_outputs, selected_targets, selected_targets_flooded, image_examples_filename)
                     print("Validation chart image saved!")
         
         # PLOT LOSS CHART
