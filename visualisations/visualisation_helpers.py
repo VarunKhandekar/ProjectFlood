@@ -2,6 +2,8 @@ import os
 import json
 import re
 import matplotlib.pyplot as plt
+from PIL import Image
+import numpy as np
 
 
 def plot_model_output_vs_label(outputs, labels, labels_flooded, filename):
@@ -153,3 +155,21 @@ def plot_loss_chart(losses, epochs, filename, hyperparams):
     plt.legend(loc='upper right')
     plt.savefig(filename, bbox_inches='tight')
     plt.close()
+
+
+def strip_black_pixel_padding_PIL(config_file_path: str, resolution: int, image_path: str):
+    with open(config_file_path) as core_config_file:
+        core_config = json.load(core_config_file)
+    
+    dimension_string = core_config[f"rainfall_reprojection_master_{resolution}"]
+    match = re.search(r'_(\d+)_(\d+)\.tif$', dimension_string)
+    new_dimension_right, new_dimension_bottom = int(match.group(1)), int(match.group(2))
+
+    image = Image.open(image_path)
+    crop_area = (0, 0, new_dimension_right, new_dimension_bottom)
+    cropped_image = image.crop(crop_area)
+
+    #convert to numpy
+    cropped_image = np.array(cropped_image)
+
+    return cropped_image

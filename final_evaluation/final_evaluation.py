@@ -29,8 +29,8 @@ if __name__=="__main__":
     
 
     # Calculate loss metrics, one epoch
-    evaluate_model(os.environ["PROJECT_FLOOD_DATA"], final_sep_branch_model, sep_branch_test_dataloader, final_sep_branch_params[''], device)
-    evaluate_model(os.environ["PROJECT_FLOOD_DATA"], final_merged_model, merged_test_dataloader, final_sep_branch_params[''], device)
+    evaluate_model(os.environ["PROJECT_FLOOD_DATA"], final_sep_branch_model, sep_branch_test_dataloader, final_sep_branch_params['criterion'], device)
+    evaluate_model(os.environ["PROJECT_FLOOD_DATA"], final_merged_model, merged_test_dataloader, final_sep_branch_params['criterion'], device)
 
 
     # Plot image
