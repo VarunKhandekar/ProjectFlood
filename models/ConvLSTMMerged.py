@@ -1,3 +1,10 @@
+######################
+# Code for ConvLSTM implementation
+# Ref: https://github.com/rogertrullo/pytorch_convlstm/
+
+# This has been adapted using the above repo as a base to work from
+######################
+
 import torch
 import torch.nn as nn
 
@@ -39,7 +46,7 @@ class ConvLSTMCell(nn.Module):
     def forward(self, input_tensor, additional_input_tensor, cur_state):
         h_cur, c_cur = cur_state
         combined = torch.cat([input_tensor, additional_input_tensor, h_cur], dim=1)
-        combined_conv = self.conv(combined) #apply conv layer to bring it to 4*hidden_dim
+        combined_conv = self.conv(combined) #apply conv layer to bring it to 4*hidden_dim, extracts features from inputs
         combined_conv = self.dropout(combined_conv)
         cc_i, cc_f, cc_o, cc_g = torch.split(combined_conv, self.hidden_dim, dim=1) #split combined conv into 4 (each has as many channels as self.hidden_dim)
         i = torch.sigmoid(cc_i)

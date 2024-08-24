@@ -8,7 +8,8 @@ def plot_model_output_vs_label(outputs, labels, labels_flooded, filename):
     num_images = 4  # Number of images to display
     fig, axes = plt.subplots(2, num_images, figsize=(15, 6))  # Create a grid of subplots
 
-    outputs = outputs.cpu().detach()
+    # outputs = outputs.cpu().detach()
+    outputs = outputs.cpu()
     labels = labels.cpu()
 
     for i in range(num_images):
@@ -45,8 +46,12 @@ def plot_model_output_vs_label_square(outputs, labels, labels_flooded, filename)
     num_images = 8  # Number of images to display
     fig, axes = plt.subplots(int(num_images/2), int(num_images/2), figsize=(num_images, num_images))  # Create a grid of subplots
 
-    outputs = outputs.cpu().detach()
-    labels = labels.cpu()
+    if isinstance(outputs, list):
+        outputs = [i.cpu() for i in outputs]
+        labels = [j.cpu() for j in labels]
+    else:
+        outputs = outputs.cpu().detach()
+        labels = labels.cpu()
 
     for i in range(num_images):
         row = (i//4)*2
