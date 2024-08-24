@@ -34,16 +34,18 @@ def train_model(data_config_path: str, model,  criterion_type: str, optimizer_ty
                 train_dataloader: DataLoader, val_dataloader: DataLoader = None, is_final: bool = False):
 
     hyperparams = {
-        'num_epochs': num_epochs,
-        'train_batch_size': train_dataloader.batch_size,
-        'learning_rate': lr,
-        'preceding_rainfall_days': model.preceding_rainfall_days,
-        'dropout_prob': model.dropout_prob,
-        'output_channels': model.output_channels,
-        'conv_block_layers': model.conv_block_layers,
-        'convLSTM_layers': model.convLSTM_layers,
-        'optimizer_type': optimizer_type,
-        'criterion': criterion_type  
+        'epochs': num_epochs,
+        'batchsize': train_dataloader.batch_size,
+        'lr': lr,
+        'precedingrainfall': model.preceding_rainfall_days,
+        'dropout': model.dropout_prob,
+        'outputchannels': model.output_channels,
+        'convblocklayers': model.conv_block_layers,
+        'convLSTMlayers': model.convLSTM_layers,
+        'optim': optimizer_type,
+        'criterion': criterion_type,
+        'transforms': True if train_dataloader.dataset.transform else False,
+        'res': train_dataloader.dataset.resolution
     }
     # print(hyperparams)
 
