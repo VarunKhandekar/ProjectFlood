@@ -7,7 +7,7 @@ if __name__=="__main__":
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     torch.manual_seed(42)
     # Load newly trained best, final models
-    final_sep_branch_model, _, _, final_sep_branch_params = load_checkpoint("...")
+    final_sep_branch_model, _, _, final_sep_branch_params = load_checkpoint("...") #TODO FILL IN FILEPATHS
     final_merged_model, _, _, final_merged_params = load_checkpoint("...")
 
 
@@ -29,7 +29,8 @@ if __name__=="__main__":
     
 
     # Calculate loss metrics, one epoch
-
+    evaluate_model(os.environ["PROJECT_FLOOD_DATA"], final_sep_branch_model, sep_branch_test_dataloader, final_sep_branch_params[''], device)
+    evaluate_model(os.environ["PROJECT_FLOOD_DATA"], final_merged_model, merged_test_dataloader, final_sep_branch_params[''], device)
 
 
     # Plot image
@@ -38,7 +39,6 @@ if __name__=="__main__":
 
         sep_branch_flooded_images = []
         sep_branch_non_flooded_images = []
-
         for inputs, targets, flooded in sep_branch_test_dataloader:
             sep_branch_outputs = final_sep_branch_model(inputs)
             for i in range(len(flooded)):
@@ -51,7 +51,6 @@ if __name__=="__main__":
                     break
             if len(sep_branch_flooded_images) >= 4 and len(sep_branch_non_flooded_images) >= 4:
                 break
-        
 
         merged_flooded_images = []
         merged_non_flooded_images = []
@@ -69,9 +68,15 @@ if __name__=="__main__":
                 break
 
         selected_sep_branch_outputs = [img[0] for img in sep_branch_flooded_images + sep_branch_non_flooded_images]
-        selected_merged_outputs = [img[0] for img in sep_branch_flooded_images + sep_branch_non_flooded_images]
+        selected_merged_outputs = [img[0] for img in merged_flooded_images + merged_non_flooded_images]
+
+        model_names = ['Branched', 'Merged']
+        selected_model_outputs = [selected_sep_branch_outputs, selected_merged_outputs]
         selected_targets = [img[1] for img in sep_branch_flooded_images + sep_branch_non_flooded_images]
         selected_targets_flooded = [img[2] for img in sep_branch_flooded_images + sep_branch_non_flooded_images]
 
-
-    # Save down
+        # Do plotting
+        with open(os.environ["PROJECT_FLOOD_DATA"]) as data_config_file:
+            data_config = json.load(data_config_file)
+        plot_filename = os.path.join(data_config["model_results_path"], "final_plots.png")
+        plot_final_model_output_vs_label(model_names, selected_model_outputs, selected_targets, selected_targets_flooded, plot_filename)

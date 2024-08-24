@@ -59,6 +59,9 @@ def train_model(data_config_path: str, model,  criterion_type: str, optimizer_ty
     training_losses = []
     validation_losses = []
     epochs = []
+
+    best_epoch = 0
+    best_val_loss = np.inf
     for epoch in range(1, num_epochs+1):
         # TRAINING
         model.train()
@@ -87,6 +90,8 @@ def train_model(data_config_path: str, model,  criterion_type: str, optimizer_ty
         if val_dataloader: # Check if we even want validation losses
             validation_epoch_average_loss = validate_model(model, val_dataloader, criterion, device)
             validation_losses.append(validation_epoch_average_loss)
+            if validation_epoch_average_loss < best_val_loss:
+                best_epoch = epoch
 
         if epoch % 100 == 0:
             print(f'Epoch {epoch}/{num_epochs}, Loss: {loss.item():.4f}, Val Loss: {validation_epoch_average_loss:.4f}')
@@ -96,6 +101,7 @@ def train_model(data_config_path: str, model,  criterion_type: str, optimizer_ty
             save_checkpoint(model, optimizer, epoch, os.path.join(data_config["saved_models_path"], f"{model.name}_{epoch}.pt"), hyperparams)
     
     # Save end model
+    print("Best epoch:", best_epoch, "; Lowest validation loss:", best_val_loss)
     if is_final:
         save_checkpoint(model, optimizer, epoch, os.path.join(data_config["saved_models_path"], f"{model.name}_{epoch}_FINAL.pt"), hyperparams)
     else:
