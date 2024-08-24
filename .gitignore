@@ -169,3 +169,4 @@ archive/
 # data_extraction/ee_test.ipynb
 # gpu/availability.py
 requirements.txt
+data_extraction/data_cut.py
