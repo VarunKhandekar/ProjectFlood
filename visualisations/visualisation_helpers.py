@@ -87,29 +87,23 @@ def plot_model_output_vs_label_square(outputs, labels, labels_flooded, filename)
 
 
 
-def plot_final_model_output_vs_label(outputs, labels, labels_flooded, filename):
-    num_images = 8  # Number of images to display
-    fig, axes = plt.subplots(int(num_images/2), int(num_images/2), figsize=(num_images, num_images))  # Create a grid of subplots
+def plot_final_model_output_vs_label(model_names, outputs, labels, labels_flooded, filename):
+    num_images = len(labels)  # Number of images to display
+    fig, axes = plt.subplots(len(model_names) + 1, num_images, figsize=(len(model_names) + 1, num_images))  # Create a grid of subplots
 
-    if isinstance(outputs, list):
-        outputs = [i.cpu() for i in outputs]
-        labels = [j.cpu() for j in labels]
-    else:
-        outputs = outputs.cpu().detach()
-        labels = labels.cpu()
+
+    outputs = [[i.cpu() for i in output] for output in outputs]
+    labels = [l.cpu() for l in labels]
+
 
     for i in range(num_images):
-        row = (i//4)*2
-        col = i % 4
-
         # Display true labels
-        ax = axes[row, col]
+        ax = axes[0, i]
         ax.imshow(labels[i], cmap='gray', vmin=0, vmax=1)  # grayscale
         ax.set_xticks([])
         ax.set_yticks([])
-        if col == 0:
-            # ax.set_ylabel('True Label', rotation=0, size='large', labelpad=40)
-            ax.set_ylabel('True Label', rotation=90, size='large')
+        if i == 0:
+            ax.set_ylabel('Ground Truth', rotation=90, size='large')
             ax.yaxis.set_label_position("left")
         if labels_flooded[i]:
             ax.set_title('Flood')
@@ -117,14 +111,15 @@ def plot_final_model_output_vs_label(outputs, labels, labels_flooded, filename):
             ax.set_title('No Flood')
 
         # Display model outputs
-        ax = axes[row+1, col]
-        ax.imshow(outputs[i], cmap='gray', vmin=0, vmax=1)
-        ax.set_xticks([])
-        ax.set_yticks([])
-        if col == 0:
-            # ax.set_ylabel('Model Output', rotation=0, size='large', labelpad=40)
-            ax.set_ylabel('Model Output', rotation=90, size='large')
-            ax.yaxis.set_label_position("left")
+        for j in range(len(outputs)):
+            ax = axes[j+1, i]
+            ax.imshow(outputs[j][i], cmap='gray', vmin=0, vmax=1)
+            ax.set_xticks([])
+            ax.set_yticks([])
+            if i == 0:
+                # ax.set_ylabel('Model Output', rotation=0, size='large', labelpad=40)
+                ax.set_ylabel(f"f{model_names[j]} Output", rotation=90, size='large')
+                ax.yaxis.set_label_position("left")
 
     fig.tight_layout()
     plt.savefig(filename, bbox_inches='tight')

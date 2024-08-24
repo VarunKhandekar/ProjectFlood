@@ -71,6 +71,9 @@ def train_model_dist(rank: int, world_size: int, data_config_path: str, model,  
     training_losses = []
     validation_losses = []
     epochs = []
+
+    best_epoch = 0
+    best_val_loss = np.inf
     for epoch in range(1, num_epochs+1):
         # TRAINING
         model.train()
@@ -95,10 +98,13 @@ def train_model_dist(rank: int, world_size: int, data_config_path: str, model,  
         epochs.append(epoch)
 
 
-        # COLLECT VALIDATION LOSSES
+        # COLLECT VALIDATION LOSSES; get best epoch 
         if val_dataloader: # Check if we even can do validation losses
             validation_epoch_average_loss = validate_model(model, val_dataloader, criterion, rank)
             validation_losses.append(validation_epoch_average_loss)
+            if validation_epoch_average_loss < best_val_loss:
+                best_epoch = epoch
+
 
         if epoch % 100 == 0 and rank == 0:
             print(f'Epoch {epoch}/{num_epochs}, Loss: {loss.item():.4f}, Val Loss: {validation_epoch_average_loss:.4f}')
@@ -109,6 +115,7 @@ def train_model_dist(rank: int, world_size: int, data_config_path: str, model,  
     
     # Save end model
     if rank == 0:
+        print("Best epoch:", best_epoch, "; Lowest validation loss:", best_val_loss)
         if is_final:
             save_checkpoint(model, optimizer, epoch, os.path.join(data_config["saved_models_path"], f"{get_attribute(model, 'name')}_{epoch}_FINAL.pt"), hyperparams)
         else:
