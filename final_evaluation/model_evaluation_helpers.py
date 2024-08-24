@@ -97,13 +97,12 @@ def evaluate_model(data_config_path, model, dataloader, criterion_str, device, e
     criterion = getattr(nn, criterion_str)()
 
     with torch.no_grad():
-        for inputs, labels in dataloader:
+        for inputs, labels, flooded in dataloader:
             inputs, labels = inputs.to(device, dtype=torch.float32), labels.to(device, dtype=torch.float32)
             outputs = model(inputs)
             total_loss += criterion(outputs, labels).item()
-            logits = torch.sigmoid(outputs)
             #TODO ADD CROPPING HERE
-            predicted = logits > 0.5
+            predicted = outputs > 0.5
             total += labels.size(0)
             correct += (predicted == labels.to(device)).sum().item()
 
@@ -122,7 +121,7 @@ def evaluate_model(data_config_path, model, dataloader, criterion_str, device, e
     with open(data_config_path) as data_config_file:
         data_config = json.load(data_config_file)
 
-    with open(os.path.join(data_config["model_results_path"], f"{model.name}_{epoch}_{model_run_date}_evaluarion_results.csv"), mode='w', newline='') as file:
+    with open(os.path.join(data_config["model_results_path"], f"{model.name}_{epoch}_{model_run_date}_evaluation_results.csv"), mode='w', newline='') as file:
         writer = csv.writer(file)
         # Write headers
         headers = ['Metric', 'Value']

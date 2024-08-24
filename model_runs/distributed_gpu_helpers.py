@@ -53,16 +53,18 @@ def train_model_dist(rank: int, world_size: int, data_config_path: str, model,  
     
 
     hyperparams = {
-        'num_epochs': num_epochs,
-        'train_batch_size': train_dataloader.batch_size,
-        'learning_rate': lr,
-        'preceding_rainfall_days': get_attribute(model, 'preceding_rainfall_days'),
-        'dropout_prob': get_attribute(model, 'dropout_prob'),
-        'output_channels': get_attribute(model, 'output_channels'),
-        'conv_block_layers': get_attribute(model, 'conv_block_layers'),
-        'convLSTM_layers': get_attribute(model, 'convLSTM_layers'),
-        'optimizer_type': optimizer_type,
-        'criterion': criterion_type  
+        'epochs': num_epochs,
+        'batchsize': train_dataloader.batch_size,
+        'lr': lr,
+        'precedingrainfall': get_attribute(model, 'preceding_rainfall_days'),
+        'dropout': get_attribute(model, 'dropout_prob'),
+        'outputchannels': get_attribute(model, 'output_channels'),
+        'convblocklayers': get_attribute(model, 'conv_block_layers'),
+        'convLSTMlayers': get_attribute(model, 'convLSTM_layers'),
+        'optim': optimizer_type,
+        'criterion': criterion_type,
+        'transforms': True if train_dataset.transform else False,
+        'res': train_dataset.resolution
     }
     # print(hyperparams)
 

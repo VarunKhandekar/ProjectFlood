@@ -165,7 +165,7 @@ cython_debug/
 data/
 # static/
 # other/
-archive/
+scripts/archive/
 # data_extraction/ee_test.ipynb
 # gpu/availability.py
 requirements.txt
