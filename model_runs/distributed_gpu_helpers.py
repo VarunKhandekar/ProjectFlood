@@ -87,7 +87,6 @@ def train_model_dist(rank: int, world_size: int, data_config_path: str, model,  
             loss.backward()
             optimizer.step()
             # last_outputs, last_labels = torch.sigmoid(outputs), labels # apply sigmoid for charting purposes
-            # last_outputs, last_labels, last_flooded = outputs, labels, flooded
 
             training_epoch_loss += loss.item()
             num_batches += 1
@@ -134,11 +133,6 @@ def train_model_dist(rank: int, world_size: int, data_config_path: str, model,  
                 
                     for inputs, targets, flooded in val_dataloader:
                         inputs, targets = inputs.to(rank, dtype=torch.float32), targets.to(rank, dtype=torch.float32)
-                        # # Sort the tensors according to the sorted indices
-                        # _, sorted_indices = torch.sort(flooded) #Arranges so we have non-flooded followed by flooded
-                        # inputs = inputs[sorted_indices]
-                        # targets = targets[sorted_indices]
-                        # flooded = flooded[sorted_indices]
                         outputs = model(inputs)
 
                         for i in range(len(flooded)):
@@ -154,10 +148,6 @@ def train_model_dist(rank: int, world_size: int, data_config_path: str, model,  
                         if len(flooded_images) >= size and len(non_flooded_images) >= size:
                             break
 
-                        # selected_outputs = outputs[:8]
-                        # selected_targets = targets[:8]
-                        # selected_targets_flooded = flooded[:8]
-                        # break
                     selected_outputs = [img[0] for img in flooded_images + non_flooded_images]
                     selected_targets = [img[1] for img in flooded_images + non_flooded_images]
                     selected_targets_flooded = [img[2] for img in flooded_images + non_flooded_images]

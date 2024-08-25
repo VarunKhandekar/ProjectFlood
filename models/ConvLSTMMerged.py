@@ -9,27 +9,6 @@ import torch
 import torch.nn as nn
 
 
-# class ConvBlock(nn.Module):
-#     def __init__(self, in_channels, out_channels, num_layers, dropout_prob):
-#         super(ConvBlock, self).__init__()
-
-#         layers = []
-#         for _ in range(num_layers):
-#             layers.extend([
-#                 nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1),
-#                 nn.BatchNorm2d(out_channels),
-#                 nn.ReLU(),
-#                 nn.Dropout2d(dropout_prob)
-#             ])
-#             in_channels = out_channels # Update layers for next round
-        
-#         self.conv = nn.Sequential(*layers)
-
-    
-#     def forward(self, x):
-#         return self.conv(x)
-
-
 class ConvLSTMCell(nn.Module):
     def __init__(self, input_dim, hidden_dim, additional_input_dim, kernel_size, dropout_prob, bias=True):
         super(ConvLSTMCell, self).__init__()
@@ -100,8 +79,6 @@ class ConvLSTMMerged(nn.Module):
         self.output_channels = output_channels
         self.conv_block_layers = conv_block_layers
         self.convLSTM_layers = convLSTM_layers
-        # self.conv1 = ConvBlock(1, self.output_channels, self.conv_block_layers, self.dropout_prob)
-        # self.conv2 = ConvBlock(1, self.output_channels, self.conv_block_layers, self.dropout_prob)
         self.convlstm = ConvLSTM(1, self.output_channels, 2, 5, self.convLSTM_layers, self.dropout_prob)
 
         final_conv_kernel_size = 5
