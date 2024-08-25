@@ -3,8 +3,8 @@ import torch
 import torch.optim as optim
 import torch.nn.functional as F
 import torchmetrics
-import torchvision.transforms as T
 import numpy as np
+import pandas as pd
 from sklearn.metrics import confusion_matrix, auc
 import matplotlib.pyplot as plt
 import csv
@@ -90,8 +90,7 @@ def evaluate_model(model, test_dataloader, criterion_str, device, mask_path, cro
     model.eval()
     criterion = getattr(torch.nn, criterion_str)()
 
-    # Load the True/False mask
-    mask = np.load(mask_path)
+    mask = np.load(mask_path) # Load the True/False mask
 
     thresholds = np.arange(0, 1.05, 0.05)
     confusion_matrices = {thr: np.zeros((2, 2)) for thr in thresholds}
@@ -99,6 +98,7 @@ def evaluate_model(model, test_dataloader, criterion_str, device, mask_path, cro
     accuracy_scores = {thr: 0 for thr in thresholds}
     
     total_samples = 0
+    total_masked_samples = 0
 
     total_loss = 0
     total_rmse = 0
@@ -123,34 +123,32 @@ def evaluate_model(model, test_dataloader, criterion_str, device, mask_path, cro
             masked_outputs = cropped_outputs[~mask_torch]
             masked_labels = cropped_labels[~mask_torch]
 
-            # 1. Calculate PSNR and SSIM on cropped (but not masked) images
+            # 1. Calculate PSNR, SSIM, RMSE and MAE on cropped (but not masked) images
             psnr_value = PSNR(cropped_outputs, cropped_labels)
             ssim_value = SSIM(cropped_outputs, cropped_labels)
             total_psnr += psnr_value.item()
             total_ssim += ssim_value.item()
 
-            # 2. Calculate RMSE and MAE on masked images
-            rmse_loss = RMSELoss(masked_outputs, masked_labels)
-            mae_loss = MAELoss(masked_outputs, masked_labels)
+            rmse_loss = RMSELoss(cropped_outputs, cropped_labels)
+            mae_loss = MAELoss(cropped_outputs, cropped_labels)
 
             total_rmse += rmse_loss.item()
             total_mae += mae_loss.item()
 
             # Calculate the total loss
-            loss = criterion(masked_outputs, masked_labels).item()
+            loss = criterion(cropped_outputs, cropped_labels).item()
             total_loss += loss
-            total_samples += masked_labels.size(0)
+            total_samples += cropped_labels.size(0)
+            total_masked_samples += masked_labels.size(0)
 
-            # Apply different thresholds and calculate confusion matrices
+            # 2. Apply different thresholds and calculate confusion matrices
             for thr in thresholds:
                 binary_output = (masked_outputs > thr).float()
                 binary_output = binary_output.cpu().numpy().flatten()
                 binary_labels = masked_labels.cpu().numpy().flatten()
 
                 cm = confusion_matrix(binary_labels, binary_output, labels=[0, 1]) #tn, fp, fn, tp, does counts
-                confusion_matrices[thr] += cm
-                # precision_scores[thr] += precision_score(binary_labels, binary_output, zero_division=0)
-                # recall_scores[thr] += recall_score(binary_labels, binary_output, zero_division=0)
+                confusion_matrices[thr] += cm # element-wise addition
 
                 # Calculate accuracy at this threshold
                 correct_predictions = (binary_output == binary_labels).sum()
@@ -161,13 +159,12 @@ def evaluate_model(model, test_dataloader, criterion_str, device, mask_path, cro
     avg_mae = total_mae / len(test_dataloader)
     avg_psnr = total_psnr / len(test_dataloader)
     avg_ssim = total_ssim / len(test_dataloader)
-    average_loss = total_loss / total_samples
-
+    average_loss = total_loss / len(test_dataloader)
 
 
     # Calculate average accuracy for each threshold
     for thr in thresholds:
-        accuracy_scores[thr] /= total_samples
+        accuracy_scores[thr] /= total_masked_samples
 
     metric_accumulator = {
         'average_rmse': avg_rmse,
@@ -179,7 +176,7 @@ def evaluate_model(model, test_dataloader, criterion_str, device, mask_path, cro
         'accuracy_scores': accuracy_scores
     }
     
-    # Calculate the final precision and recall
+    # Calculate the final precision, recall, F1 and false positive rate
     precision_scores = {}
     recall_scores = {}
     f1_scores = {}
@@ -277,7 +274,7 @@ def plot_roc_auc_curves(metric_accumulators, filename, titles=None):
         
         roc_auc = auc(fpr, tpr) # Calculate AUC
         
-        axs[i].plot(fpr, tpr, color='blue', lw=2, label=f'ROC curve (AUC = {roc_auc:.2f})')
+        axs[i].plot(fpr, tpr, color='blue', lw=2, label=f'ROC curve (AUC = {roc_auc:.3f})')
         axs[i].plot([0, 1], [0, 1], color='red', lw=2, linestyle='--', label='Random Classifier (AUC = 0.5)') # random classifier
         
         if titles:
@@ -295,61 +292,13 @@ def plot_roc_auc_curves(metric_accumulators, filename, titles=None):
     plt.show()
 
 
+def save_metrics_to_csv(metric_accumulators, model_names, filename):
+    data = {}
+    for metric_accumulator in metric_accumulators:
+        for key, value in metric_accumulator.items():
+            if key not in data:
+                data[key] = []
+            data[key].append(value)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-# def evaluate_model(data_config_path, model, dataloader, criterion_str, device):
-#     model = model.to(device)
-#     model.eval()
-#     total_loss = 0
-#     total, correct = 0, 0
-#     metric_accumulator = {name: 0 for name in ["kl_div", "rmse", "mae", "psnr", "ssim", "fid"]}
-#     criterion = getattr(nn, criterion_str)()
-
-#     with torch.no_grad():
-#         for inputs, labels, flooded in dataloader:
-#             inputs, labels = inputs.to(device, dtype=torch.float32), labels.to(device, dtype=torch.float32)
-#             outputs = model(inputs)
-#             total_loss += criterion(outputs, labels).item()
-#             #TODO ADD CROPPING HERE
-#             predicted = outputs > 0.5
-#             total += labels.size(0)
-#             correct += (predicted == labels.to(device)).sum().item()
-
-#             # Calculate metrics for each batch and accumulate
-#             batch_metrics = calculate_metrics(outputs, labels)
-#             for key in metric_accumulator:
-#                 metric_accumulator[key] += batch_metrics[key]
-
-#     # Average the accumulated metrics over all batches
-#     for key in metric_accumulator:
-#         metric_accumulator[key] /= len(dataloader)
-
-#     accuracy = 100 * correct / total if total > 0 else 0
-#     average_loss = total_loss / len(dataloader)
-
-#     with open(data_config_path) as data_config_file:
-#         data_config = json.load(data_config_file)
-
-#     with open(os.path.join(data_config["model_results_path"], f"{model.name}_evaluation_results.csv"), mode='w', newline='') as file:
-#         writer = csv.writer(file)
-#         # Write headers
-#         headers = ['Metric', 'Value']
-#         writer.writerow(headers)
-#         # Write data
-#         writer.writerow(['Accuracy', accuracy])
-#         writer.writerow(['Average Loss', average_loss])
-#         for key, value in metric_accumulator.items():
-#             writer.writerow([key, value])
-#     return accuracy, average_loss, metric_accumulator
+    df = pd.DataFrame(data, index=model_names).T
+    df.to_csv(filename)
