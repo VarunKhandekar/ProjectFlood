@@ -2,6 +2,7 @@ import os
 import json
 import re
 import matplotlib.pyplot as plt
+from matplotlib.gridspec import GridSpec
 from PIL import Image
 import numpy as np
 
@@ -91,14 +92,18 @@ def plot_model_output_vs_label_square(outputs, labels, labels_flooded, filename)
 
 def plot_final_model_output_vs_label(model_names, outputs, labels, labels_flooded, filename):
     num_images = len(labels)  # Number of images to display
-    fig, axes = plt.subplots(len(model_names) + 1, num_images, figsize=(num_images*3, (len(model_names) + 1)*3))  # Create a grid of subplots; figsize is columns, rows
+    # fig, axes = plt.subplots(len(model_names) + 1, num_images, figsize=(num_images*3, (len(model_names) + 1)*3))  # Create a grid of subplots; figsize is columns, rows
+    fig = plt.figure(figsize=(num_images*2.5, (len(model_names) + 1)*2.5))  # Create a grid of subplots; figsize is columns, rows
+
+    gs = GridSpec(len(model_names) + 1, num_images, figure=fig, wspace=0.000, hspace=0.02)
 
     outputs = [[i.cpu() for i in output] for output in outputs]
     labels = [l.cpu() for l in labels]
 
     for i in range(num_images):
         # Display true labels
-        ax = axes[0, i]
+        # ax = axes[0, i]
+        ax = fig.add_subplot(gs[0, i])
         ax.imshow(labels[i], cmap='gray', vmin=0, vmax=1)  # grayscale
         ax.set_xticks([])
         ax.set_yticks([])
@@ -113,7 +118,8 @@ def plot_final_model_output_vs_label(model_names, outputs, labels, labels_floode
 
         # Display model outputs
         for j in range(len(outputs)):
-            ax = axes[j+1, i]
+            # ax = axes[j+1, i]
+            ax = fig.add_subplot(gs[j + 1, i])
             ax.imshow(outputs[j][i], cmap='gray', vmin=0, vmax=1)
             ax.set_xticks([])
             ax.set_yticks([])
@@ -123,8 +129,8 @@ def plot_final_model_output_vs_label(model_names, outputs, labels, labels_floode
                 # ax.set_ylabel(f"{model_names[j]} Output", rotation=90, fontsize=10)
                 ax.yaxis.set_label_position("left")
 
-    fig.tight_layout()
-    fig.subplots_adjust(wspace=0.1)
+    # fig.tight_layout()
+    # fig.subplots_adjust(wspace=0.001)
     plt.savefig(filename, bbox_inches='tight')
     plt.close()
 
