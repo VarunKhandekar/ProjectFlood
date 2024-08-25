@@ -28,19 +28,27 @@ if __name__=="__main__":
     merged_test_dataloader = get_dataloader("test_labels_path", resolution=256, preceding_rainfall_days=final_merged_params['precedingrainfall'], forecast_rainfall_days=1, 
                                                 transform=None, batch_size=16, shuffle=False, num_workers=4)
     
-
+    # Set up config files
     with open(os.environ["PROJECT_FLOOD_CORE_PATHS"]) as core_config_file:
         core_config = json.load(core_config_file)
+    with open(os.environ["PROJECT_FLOOD_DATA"]) as data_config_file:
+        data_config = json.load(data_config_file)
+
+    # Get cropping dimensions
     dimension_string = core_config[f"rainfall_reprojection_master_{resolution}"]
     match = re.search(r'_(\d+)_(\d+)\.tif$', dimension_string)
     new_dimension_right, new_dimension_bottom = int(match.group(1)), int(match.group(2))
 
     # Calculate loss metrics, one epoch
-    evaluate_model(os.environ["PROJECT_FLOOD_DATA"], final_sep_branch_model, sep_branch_test_dataloader, final_sep_branch_params['criterion'], device)
-    evaluate_model(os.environ["PROJECT_FLOOD_DATA"], final_merged_model, merged_test_dataloader, final_sep_branch_params['criterion'], device)
+    mask_path = os.path.join(data_config["model_results_path"], f"perm_water_mask_{resolution}.npy")
+    sep_branch_metrics = evaluate_model(final_sep_branch_model, sep_branch_test_dataloader, final_sep_branch_params['criterion'], device, new_dimension_right, new_dimension_bottom)
+    merged_metrics = evaluate_model(final_merged_model, merged_test_dataloader, final_sep_branch_params['criterion'], device, new_dimension_right, new_dimension_bottom)
+
+    
 
 
-    # Plot image
+
+    # Plot test images for each model
     with torch.no_grad():
         size = 3
 
@@ -73,13 +81,9 @@ if __name__=="__main__":
                     break
             if len(merged_flooded_images) >= 4 and len(merged_non_flooded_images) >= 4:
                 break
-        
-        
-
 
         selected_sep_branch_outputs = [img[0] for img in sep_branch_flooded_images + sep_branch_non_flooded_images]
         selected_sep_branch_outputs = [i[:new_dimension_bottom, :new_dimension_right] for i in selected_sep_branch_outputs] #crop
-
 
         selected_merged_outputs = [img[0] for img in merged_flooded_images + merged_non_flooded_images]
         selected_merged_outputs = [i[:new_dimension_bottom, :new_dimension_right] for i in selected_merged_outputs] #crop
@@ -90,11 +94,8 @@ if __name__=="__main__":
         selected_targets = [img[1] for img in sep_branch_flooded_images + sep_branch_non_flooded_images]
         selected_targets = [i[:new_dimension_bottom, :new_dimension_right] for i in selected_targets] #crop
 
-
         selected_targets_flooded = [img[2] for img in sep_branch_flooded_images + sep_branch_non_flooded_images] #boolean for flooded or not
 
         # Do plotting
-        with open(os.environ["PROJECT_FLOOD_DATA"]) as data_config_file:
-            data_config = json.load(data_config_file)
         plot_filename = os.path.join(data_config["model_results_path"], "final_plots.png")
         plot_final_model_output_vs_label(model_names, selected_model_outputs, selected_targets, selected_targets_flooded, plot_filename)

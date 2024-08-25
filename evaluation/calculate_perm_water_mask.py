@@ -18,6 +18,6 @@ if __name__ == "__main__":
         combined_mask = np.logical_and(combined_mask, cropped_image)
         
     print(combined_mask)
-    np.save(f"{data_config['model_results_path']}/perm_water_mask.npy", combined_mask)
+    np.save(f"{data_config['model_results_path']}/perm_water_mask_{resolution}.npy", combined_mask)
 
     

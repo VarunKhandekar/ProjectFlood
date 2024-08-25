@@ -82,12 +82,3 @@ if __name__=="__main__":
                                                         train_dataset_merged,
                                                         True), nprocs=world_size)
 
-
-
-
-    
-    # Calculate loss metrics, one epoch
-
-
-    # Save down
-
