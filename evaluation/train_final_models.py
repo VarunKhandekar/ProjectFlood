@@ -1,4 +1,4 @@
-from final_evaluation.model_evaluation_helpers import *
+from evaluation.model_evaluation_helpers import *
 from model_runs.model_run_helpers import *
 from model_runs.distributed_gpu_helpers import *
 

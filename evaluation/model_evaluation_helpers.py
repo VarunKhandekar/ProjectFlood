@@ -1,7 +1,6 @@
 
 import torch
 import torch.optim as optim
-import torchvision
 import torch.nn.functional as F
 import torchmetrics
 import torchvision.transforms as T
@@ -10,26 +9,27 @@ import json
 import os
 from models.ConvLSTMSeparateBranches import *
 from models.ConvLSTMMerged import *
-from final_evaluation.model_evaluation_helpers import *
+from evaluation.model_evaluation_helpers import *
 
 
 def load_checkpoint(filepath):
     checkpoint = torch.load(filepath)
     hyperparams = checkpoint['hyperparams']
+    print(checkpoint['hyperparams'].keys())
     if checkpoint['model_type'] == "ConvLSTMSeparateBranches":
-        model = ConvLSTMSeparateBranches(hyperparams['preceding_rainfall_days'], 1,  
-                                         hyperparams['output_channels'], 
-                                         hyperparams['conv_block_layers'],
-                                         hyperparams['convLSTM_layers'],
-                                         hyperparams['dropout_prob'])
+        model = ConvLSTMSeparateBranches(hyperparams['precedingrainfall'], 1,  
+                                         hyperparams['outputchannels'], 
+                                         hyperparams['convblocklayers'],
+                                         hyperparams['convLSTMlayers'],
+                                         hyperparams['dropout'])
     elif checkpoint['model_type'] == "ConvLSTMMerged":
-        model = ConvLSTMMerged(hyperparams['preceding_rainfall_days'], 1,  
-                                         hyperparams['output_channels'], 
-                                         hyperparams['conv_block_layers'],
-                                         hyperparams['convLSTM_layers'],
-                                         hyperparams['dropout_prob'])
+        model = ConvLSTMMerged(hyperparams['precedingrainfall'], 1,  
+                               hyperparams['outputchannels'], 
+                               hyperparams['convblocklayers'],
+                               hyperparams['convLSTMlayers'],
+                               hyperparams['dropout'])
         #TODO add the name as an attribute here?
-    optimizer = getattr(optim, hyperparams['optimizer_type'])(model.parameters(), lr=hyperparams['learning_rate'])
+    optimizer = getattr(optim, hyperparams['optim'])(model.parameters(), lr=hyperparams['lr'])
 
     #Set up model and optimizer with values from that checkpoint
     model.load_state_dict(checkpoint['model_state_dict'])
@@ -64,15 +64,6 @@ def SSIM(y_pred, y_true):
     return ssim(y_pred, y_true)
 
 
-def FID(y_pred, y_true):
-    from torchmetrics.image.fid import FrechetInceptionDistance
-    
-    fid = FrechetInceptionDistance(feature=64, normalize=True)
-    fid.update(y_true, real=True)
-    fid.update(y_pred, real=False)
-    return fid.compute()
-
-
 def calculate_metrics(y_pred, y_true):
     metric_list = [
         ("kl_div", KL_DivLoss), 
@@ -80,7 +71,6 @@ def calculate_metrics(y_pred, y_true):
         ("mae", MAELoss),
         ("psnr", PSNR),
         ("ssim", SSIM),
-        ("fid", FID)
     ]
     metric_dict = {}
     for metric_name, metric_function in metric_list:
