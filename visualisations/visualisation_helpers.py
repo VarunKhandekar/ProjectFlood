@@ -91,12 +91,10 @@ def plot_model_output_vs_label_square(outputs, labels, labels_flooded, filename)
 
 def plot_final_model_output_vs_label(model_names, outputs, labels, labels_flooded, filename):
     num_images = len(labels)  # Number of images to display
-    fig, axes = plt.subplots(len(model_names) + 1, num_images, figsize=(len(model_names) + 1, num_images))  # Create a grid of subplots
-
+    fig, axes = plt.subplots(len(model_names) + 1, num_images, figsize=(num_images*3, (len(model_names) + 1)*3))  # Create a grid of subplots; figsize is columns, rows
 
     outputs = [[i.cpu() for i in output] for output in outputs]
     labels = [l.cpu() for l in labels]
-
 
     for i in range(num_images):
         # Display true labels
@@ -106,6 +104,7 @@ def plot_final_model_output_vs_label(model_names, outputs, labels, labels_floode
         ax.set_yticks([])
         if i == 0:
             ax.set_ylabel('Ground Truth', rotation=90, size='large')
+            # ax.set_ylabel('Ground Truth', rotation=90, fontsize=10)
             ax.yaxis.set_label_position("left")
         if labels_flooded[i]:
             ax.set_title('Flood')
@@ -120,10 +119,12 @@ def plot_final_model_output_vs_label(model_names, outputs, labels, labels_floode
             ax.set_yticks([])
             if i == 0:
                 # ax.set_ylabel('Model Output', rotation=0, size='large', labelpad=40)
-                ax.set_ylabel(f"f{model_names[j]} Output", rotation=90, size='large')
+                ax.set_ylabel(f"{model_names[j]} Output", rotation=90, size='large')
+                # ax.set_ylabel(f"{model_names[j]} Output", rotation=90, fontsize=10)
                 ax.yaxis.set_label_position("left")
 
     fig.tight_layout()
+    fig.subplots_adjust(wspace=0.1)
     plt.savefig(filename, bbox_inches='tight')
     plt.close()
 

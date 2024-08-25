@@ -10,7 +10,6 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 # from optuna.integration import PyTorchLightningPruningCallback
 from dataloaders.convLSTM_dataset import *
 from models.ConvLSTMSeparateBranches import *
-from final_evaluation.model_evaluation_helpers import *
 from visualisations.visualisation_helpers import *
 from model_runs.model_run_helpers import *
 

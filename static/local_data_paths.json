@@ -31,7 +31,7 @@
     "training_validation_combo_path": "/home/vkhandekar/project_flood/data/BangladeshWaterImagesTrainingValidation",
     
     "saved_models_path": "/home/vkhandekar/project_flood/models/saved_models",
-    "model_results_path": "/home/vkhandekar/project_flood/final_evaluation",
+    "model_results_path": "/home/vkhandekar/project_flood/evaluation",
 
     "validation_plots_path": "/home/vkhandekar/project_flood/visualisations/validation_images",
     "loss_plots_path": "/home/vkhandekar/project_flood/visualisations/loss_charts",
