@@ -44,6 +44,11 @@ if __name__=="__main__":
     sep_branch_metrics = evaluate_model(final_sep_branch_model, sep_branch_test_dataloader, final_sep_branch_params['criterion'], device, new_dimension_right, new_dimension_bottom)
     merged_metrics = evaluate_model(final_merged_model, merged_test_dataloader, final_sep_branch_params['criterion'], device, new_dimension_right, new_dimension_bottom)
 
+    # Plot loss metrics by threshold
+    metric_combo = [sep_branch_metrics, merged_metrics]
+    threshold_metrics_filename = os.path.join(data_config["model_results_path"], f"metrics_by_threshold_{resolution}.png")
+    plot_metrics_vs_thresholds(metric_combo, threshold_metrics_filename, titles=['Branched Model', 'Merged Model'])
+
     
 
 

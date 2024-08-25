@@ -5,7 +5,8 @@ import torch.nn.functional as F
 import torchmetrics
 import torchvision.transforms as T
 import numpy as np
-from sklearn.metrics import confusion_matrix, precision_score, recall_score
+from sklearn.metrics import confusion_matrix, auc
+import matplotlib.pyplot as plt
 import csv
 import json
 import os
@@ -94,8 +95,7 @@ def evaluate_model(model, test_dataloader, criterion_str, device, mask_path, cro
 
     thresholds = np.arange(0, 1.05, 0.05)
     confusion_matrices = {thr: np.zeros((2, 2)) for thr in thresholds}
-    precision_scores = {thr: 0 for thr in thresholds}
-    recall_scores = {thr: 0 for thr in thresholds}
+    
     accuracy_scores = {thr: 0 for thr in thresholds}
     
     total_samples = 0
@@ -147,10 +147,10 @@ def evaluate_model(model, test_dataloader, criterion_str, device, mask_path, cro
                 binary_output = binary_output.cpu().numpy().flatten()
                 binary_labels = masked_labels.cpu().numpy().flatten()
 
-                cm = confusion_matrix(binary_labels, binary_output, labels=[0, 1]) #tn, fp, fn, tp
+                cm = confusion_matrix(binary_labels, binary_output, labels=[0, 1]) #tn, fp, fn, tp, does counts
                 confusion_matrices[thr] += cm
-                precision_scores[thr] += precision_score(binary_labels, binary_output, zero_division=0)
-                recall_scores[thr] += recall_score(binary_labels, binary_output, zero_division=0)
+                # precision_scores[thr] += precision_score(binary_labels, binary_output, zero_division=0)
+                # recall_scores[thr] += recall_score(binary_labels, binary_output, zero_division=0)
 
                 # Calculate accuracy at this threshold
                 correct_predictions = (binary_output == binary_labels).sum()
@@ -163,10 +163,10 @@ def evaluate_model(model, test_dataloader, criterion_str, device, mask_path, cro
     avg_ssim = total_ssim / len(test_dataloader)
     average_loss = total_loss / total_samples
 
-    # Calculate the final precision and recall
+
+
+    # Calculate average accuracy for each threshold
     for thr in thresholds:
-        precision_scores[thr] /= total_samples
-        recall_scores[thr] /= total_samples
         accuracy_scores[thr] /= total_samples
 
     metric_accumulator = {
@@ -176,12 +176,125 @@ def evaluate_model(model, test_dataloader, criterion_str, device, mask_path, cro
         'average_ssim': avg_ssim,
         'average_loss': average_loss,
         'confusion_matrices': confusion_matrices,
-        'precision_scores': precision_scores,
-        'recall_scores': recall_scores,
         'accuracy_scores': accuracy_scores
     }
+    
+    # Calculate the final precision and recall
+    precision_scores = {}
+    recall_scores = {}
+    f1_scores = {}
+    false_positive_rates = {}
+    for thr, cm in metric_accumulator['confusion_matrices'].items():
+        tn, fp, fn, tp = cm.ravel()  # Unpack the 2x2 confusion matrix
+        precision = tp / (tp + fp) if (tp + fp) > 0 else np.nan
+        recall = tp / (tp + fn) if (tp + fn) > 0 else np.nan
+        
+        precision_scores[thr] = precision
+        recall_scores[thr] = recall
+        f1_scores[thr] = (2*precision*recall)/(precision+recall) if (precision + recall) > 0 else np.nan
+
+        false_positive_rates[thr] = fp / (fp + tn) if (fp + tn) > 0 else np.nan
+    
+    metric_accumulator['precision_scores'] = precision_scores
+    metric_accumulator['recall_scores'] = recall_scores
+    metric_accumulator['f1_scores'] = f1_scores
+    metric_accumulator['false_positive_rates'] = false_positive_rates
 
     return metric_accumulator
+
+
+def plot_metrics_vs_thresholds(metric_accumulators, filename, titles=None):
+    """
+    Plots Precision, Recall, Accuracy, and F1 Scores against Thresholds for a list of metric accumulators.
+
+    Parameters:
+    - metric_accumulators (list of dict): A list where each element is a metric_accumulator dictionary.
+    - titles (list of str, optional): A list of titles for each subplot. If not provided, subplots will be numbered.
+
+    The function generates and displays subplots with these metrics against the thresholds.
+    """
+    
+    num_plots = len(metric_accumulators)
+    
+    # Create subplots
+    fig, axs = plt.subplots(1, num_plots, figsize=(15, 6), sharey=True)
+    
+    # If only one plot, convert axs to a list to maintain consistency
+    if num_plots == 1:
+        axs = [axs]
+
+    for i, metric_accumulator in enumerate(metric_accumulators):
+        # Extract thresholds, precision, recall, accuracy, and F1 scores from the metric_accumulator
+        thresholds = list(metric_accumulator['precision_scores'].keys())
+        precision_scores = list(metric_accumulator['precision_scores'].values())
+        recall_scores = list(metric_accumulator['recall_scores'].values())
+        accuracy_scores = list(metric_accumulator['accuracy_scores'].values())
+        f1_scores = list(metric_accumulator['f1_scores'].values())
+
+        axs[i].plot(thresholds, precision_scores, label='Precision')
+        axs[i].plot(thresholds, recall_scores, label='Recall')
+        axs[i].plot(thresholds, accuracy_scores, label='Accuracy')
+        axs[i].plot(thresholds, f1_scores, label='F1 Score')
+
+        if titles:
+            axs[i].set_title(titles[i])
+        axs[i].set_xlabel('Threshold')
+        if i == 0:  # Only set ylabel for the first subplot for clarity
+            axs[i].set_ylabel('Score')
+        
+        axs[i].legend()
+        axs[i].grid(True)
+
+    fig.suptitle("Performance Metrics by Threshold", fontsize=15, y=0.92)
+    plt.tight_layout()
+    plt.savefig(filename, bbox_inches='tight')
+    plt.show()
+
+
+def plot_roc_auc_curves(metric_accumulators, filename, titles=None):
+    """
+    Plots the ROC curve and calculates the AUC (Area Under the Curve) for each metric_accumulator in the list.
+
+    Parameters:
+    - metric_accumulators (list of dict): A list where each element is a metric_accumulator dictionary containing
+      'false_positive_rate' and 'recall_scores' (True Positive Rate).
+    - titles (list of str, optional): A list of titles for each subplot. If not provided, subplots will be numbered.
+
+    The function generates and displays the ROC curve subplots with AUC for each metric_accumulator.
+    """
+    
+    num_plots = len(metric_accumulators)
+
+    fig, axs = plt.subplots(1, num_plots, figsize=(15, 6), sharey=True)
+    
+    # If only one plot, convert axs to a list to maintain consistency
+    if num_plots == 1:
+        axs = [axs]
+
+    for i, metric_accumulator in enumerate(metric_accumulators):
+        fpr = list(metric_accumulator['false_positive_rates'].values())
+        tpr = list(metric_accumulator['recall_scores'].values())
+        
+        roc_auc = auc(fpr, tpr) # Calculate AUC
+        
+        axs[i].plot(fpr, tpr, color='blue', lw=2, label=f'ROC curve (AUC = {roc_auc:.2f})')
+        axs[i].plot([0, 1], [0, 1], color='red', lw=2, linestyle='--', label='Random Classifier (AUC = 0.5)') # random classifier
+        
+        if titles:
+            axs[i].set_title(titles[i])
+        axs[i].set_xlabel('False Positive Rate (FPR)')
+        if i == 0:
+            axs[i].set_ylabel('True Positive Rate (TPR)')
+        
+        axs[i].legend(loc='lower right')
+        axs[i].grid(True)
+
+    fig.suptitle("ROC Curves", fontsize=15, y=0.92)
+    plt.tight_layout()
+    plt.savefig(filename, bbox_inches='tight')
+    plt.show()
+
+
 
 
 
