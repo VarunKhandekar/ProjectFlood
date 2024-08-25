@@ -46,11 +46,17 @@ if __name__=="__main__":
 
     # Plot loss metrics by threshold
     metric_combo = [sep_branch_metrics, merged_metrics]
+    titles = ['Branched Model', 'Merged Model']
     threshold_metrics_filename = os.path.join(data_config["model_results_path"], f"metrics_by_threshold_{resolution}.png")
-    plot_metrics_vs_thresholds(metric_combo, threshold_metrics_filename, titles=['Branched Model', 'Merged Model'])
+    plot_metrics_vs_thresholds(metric_combo, threshold_metrics_filename, titles)
 
-    
+    #Plot ROC
+    roc_filename = os.path.join(data_config["model_results_path"], f"ROC_curves_{resolution}.png")
+    plot_roc_auc_curves(metric_combo, roc_filename, titles)
 
+    # Save image wide metrics
+    metrics_filename = os.path.join(data_config["model_results_path"], f"key_metrics_{resolution}.png")
+    save_metrics_to_csv(metric_combo, metrics_filename, titles)
 
 
     # Plot test images for each model
