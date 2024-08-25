@@ -62,6 +62,9 @@ def PSNR(y_pred, y_true):
 
 
 def SSIM(y_pred, y_true):
+    if y_pred.dim() == 3:  # If shape is [B, H, W], add a channel dimension
+        y_pred = y_pred.unsqueeze(1)  # Shape becomes [B, 1, H, W]
+        y_true = y_true.unsqueeze(1)  # Shape becomes [B, 1, H, W]
     ssim = torchmetrics.StructuralSimilarityIndexMeasure()
     return ssim(y_pred, y_true)
 
@@ -81,7 +84,7 @@ def calculate_metrics(y_pred, y_true):
 
 
 
-def evaluate_model(data_config_path, model, test_dataloader, criterion_str, device, mask_path, crop_right, crop_bottom, crop_left: int = 0, crop_top: int = 0):
+def evaluate_model(model, test_dataloader, criterion_str, device, mask_path, crop_right, crop_bottom, crop_left: int = 0, crop_top: int = 0):
     model = model.to(device)
     model.eval()
     criterion = getattr(torch.nn, criterion_str)()
@@ -93,6 +96,7 @@ def evaluate_model(data_config_path, model, test_dataloader, criterion_str, devi
     confusion_matrices = {thr: np.zeros((2, 2)) for thr in thresholds}
     precision_scores = {thr: 0 for thr in thresholds}
     recall_scores = {thr: 0 for thr in thresholds}
+    accuracy_scores = {thr: 0 for thr in thresholds}
     
     total_samples = 0
 
@@ -103,16 +107,18 @@ def evaluate_model(data_config_path, model, test_dataloader, criterion_str, devi
     total_ssim = 0
 
     with torch.no_grad():
-        for inputs, labels, _ in test_dataloader: #batch size is first dim.
+        for inputs, labels, _ in test_dataloader: #batch size is first dim. (BXY)
             inputs, labels = inputs.to(device, dtype=torch.float32), labels.to(device, dtype=torch.float32)
             outputs = model(inputs)
 
             # Crop the outputs and labels as required
-            cropped_outputs = outputs[..., crop_left:crop_right, crop_top:crop_bottom]  # Assuming square crop
-            cropped_labels = labels[..., crop_left:crop_right, crop_top:crop_bottom]
+            cropped_outputs = outputs[..., crop_top:crop_bottom, crop_left:crop_right]
+            cropped_labels = labels[..., crop_top:crop_bottom, crop_left:crop_right]
 
             # Apply mask (retain False values)
             mask_torch = torch.from_numpy(mask).to(device)
+            mask_torch = mask_torch.unsqueeze(0)
+            mask_torch = mask_torch.expand(cropped_outputs.size(0), -1, -1)
 
             masked_outputs = cropped_outputs[~mask_torch]
             masked_labels = cropped_labels[~mask_torch]
@@ -141,27 +147,41 @@ def evaluate_model(data_config_path, model, test_dataloader, criterion_str, devi
                 binary_output = binary_output.cpu().numpy().flatten()
                 binary_labels = masked_labels.cpu().numpy().flatten()
 
-                cm = confusion_matrix(binary_labels, binary_output, labels=[0, 1])
+                cm = confusion_matrix(binary_labels, binary_output, labels=[0, 1]) #tn, fp, fn, tp
                 confusion_matrices[thr] += cm
                 precision_scores[thr] += precision_score(binary_labels, binary_output, zero_division=0)
                 recall_scores[thr] += recall_score(binary_labels, binary_output, zero_division=0)
 
-    # Calculate average loss
+                # Calculate accuracy at this threshold
+                correct_predictions = (binary_output == binary_labels).sum()
+                accuracy_scores[thr] += correct_predictions
+
+    # Calculate averages
+    avg_rmse = total_rmse / len(test_dataloader)
+    avg_mae = total_mae / len(test_dataloader)
+    avg_psnr = total_psnr / len(test_dataloader)
+    avg_ssim = total_ssim / len(test_dataloader)
     average_loss = total_loss / total_samples
 
     # Calculate the final precision and recall
     for thr in thresholds:
         precision_scores[thr] /= total_samples
         recall_scores[thr] /= total_samples
+        accuracy_scores[thr] /= total_samples
 
     metric_accumulator = {
+        'average_rmse': avg_rmse,
+        'average_mae': avg_mae,
+        'average_psnr': avg_psnr,
+        'average_ssim': avg_ssim,
+        'average_loss': average_loss,
         'confusion_matrices': confusion_matrices,
         'precision_scores': precision_scores,
         'recall_scores': recall_scores,
+        'accuracy_scores': accuracy_scores
     }
 
-    accuracy = None  # Add accuracy calculation logic if needed
-    return accuracy, average_loss, metric_accumulator
+    return metric_accumulator
 
 
 
