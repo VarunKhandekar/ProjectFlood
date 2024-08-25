@@ -41,6 +41,7 @@ if __name__=="__main__":
 
     # Calculate loss metrics, one epoch
     mask_path = os.path.join(data_config["model_results_path"], f"perm_water_mask_{resolution}.npy")
+    
     sep_branch_metrics = evaluate_model(final_sep_branch_model, sep_branch_test_dataloader, final_sep_branch_params['criterion'], device, new_dimension_right, new_dimension_bottom)
     merged_metrics = evaluate_model(final_merged_model, merged_test_dataloader, final_sep_branch_params['criterion'], device, new_dimension_right, new_dimension_bottom)
 
