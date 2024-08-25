@@ -6,6 +6,7 @@ from visualisations.visualisation_helpers import *
 if __name__=="__main__":
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     torch.manual_seed(42)
+    resolution = 256
     # Load newly trained best, final models
     final_sep_branch_model, _, _, final_sep_branch_params = load_checkpoint("...") #TODO FILL IN FILEPATHS
     final_merged_model, _, _, final_merged_params = load_checkpoint("...")
@@ -27,6 +28,12 @@ if __name__=="__main__":
     merged_test_dataloader = get_dataloader("test_labels_path", resolution=256, preceding_rainfall_days=final_merged_params['precedingrainfall'], forecast_rainfall_days=1, 
                                                 transform=None, batch_size=16, shuffle=False, num_workers=4)
     
+
+    with open(os.environ["PROJECT_FLOOD_CORE_PATHS"]) as core_config_file:
+        core_config = json.load(core_config_file)
+    dimension_string = core_config[f"rainfall_reprojection_master_{resolution}"]
+    match = re.search(r'_(\d+)_(\d+)\.tif$', dimension_string)
+    new_dimension_right, new_dimension_bottom = int(match.group(1)), int(match.group(2))
 
     # Calculate loss metrics, one epoch
     evaluate_model(os.environ["PROJECT_FLOOD_DATA"], final_sep_branch_model, sep_branch_test_dataloader, final_sep_branch_params['criterion'], device)
@@ -67,11 +74,7 @@ if __name__=="__main__":
             if len(merged_flooded_images) >= 4 and len(merged_non_flooded_images) >= 4:
                 break
         
-        with open(os.environ["PROJECT_FLOOD_CORE_PATHS"]) as core_config_file:
-            core_config = json.load(core_config_file)
-        dimension_string = core_config[f"rainfall_reprojection_master_256"]
-        match = re.search(r'_(\d+)_(\d+)\.tif$', dimension_string)
-        new_dimension_right, new_dimension_bottom = int(match.group(1)), int(match.group(2))
+        
 
 
         selected_sep_branch_outputs = [img[0] for img in sep_branch_flooded_images + sep_branch_non_flooded_images]
