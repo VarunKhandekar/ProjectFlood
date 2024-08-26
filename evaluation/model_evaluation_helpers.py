@@ -70,6 +70,30 @@ def SSIM(y_pred, y_true):
     return ssim(y_pred, y_true)
 
 
+def SSIM_structural(y_pred, y_true, C3=1e-3, epsilon=1e-10):
+    if y_pred.dim() == 3:  # If shape is [B, H, W], add a channel dimension
+        y_pred = y_pred.unsqueeze(1)  # Shape becomes [B, 1, H, W]
+        y_true = y_true.unsqueeze(1)  # Shape becomes [B, 1, H, W]
+    # Mean of the images
+    mu1 = F.avg_pool2d(y_pred, kernel_size=11, stride=1, padding=5)
+    mu2 = F.avg_pool2d(y_true, kernel_size=11, stride=1, padding=5)
+    
+    # Standard deviation
+    sigma1_sq = F.avg_pool2d(y_pred ** 2, kernel_size=11, stride=1, padding=5) - mu1 ** 2
+    sigma2_sq = F.avg_pool2d(y_true ** 2, kernel_size=11, stride=1, padding=5) - mu2 ** 2
+
+    # Add epsilon to avoid negative values or division by zero
+    sigma1 = torch.sqrt(sigma1_sq.clamp(min=epsilon))
+    sigma2 = torch.sqrt(sigma2_sq.clamp(min=epsilon))
+    
+    # Covariance
+    sigma12 = F.avg_pool2d(y_pred * y_true, kernel_size=11, stride=1, padding=5) - mu1 * mu2
+    
+    # Structural component
+    s = (sigma12 + C3) / (sigma1 * sigma2 + C3)
+    return s.mean()
+
+
 def calculate_metrics(y_pred, y_true):
     metric_list = [
         ("kl_div", KL_DivLoss), 
@@ -105,6 +129,7 @@ def evaluate_model(model, test_dataloader, criterion_str, device, mask_path, cro
     total_mae = 0
     total_psnr = 0
     total_ssim = 0
+    total_ssim_struct = 0
 
     with torch.no_grad():
         for inputs, labels, _ in test_dataloader: #batch size is first dim. (BXY)
@@ -126,8 +151,10 @@ def evaluate_model(model, test_dataloader, criterion_str, device, mask_path, cro
             # 1. Calculate PSNR, SSIM, RMSE and MAE on cropped (but not masked) images
             psnr_value = PSNR(cropped_outputs, cropped_labels)
             ssim_value = SSIM(cropped_outputs, cropped_labels)
+            ssim_struct_value = SSIM_structural(cropped_outputs, cropped_labels)
             total_psnr += psnr_value.item()
             total_ssim += ssim_value.item()
+            total_ssim_struct += ssim_struct_value.item()
 
             rmse_loss = RMSELoss(cropped_outputs, cropped_labels)
             mae_loss = MAELoss(cropped_outputs, cropped_labels)
@@ -159,6 +186,7 @@ def evaluate_model(model, test_dataloader, criterion_str, device, mask_path, cro
     avg_mae = total_mae / len(test_dataloader)
     avg_psnr = total_psnr / len(test_dataloader)
     avg_ssim = total_ssim / len(test_dataloader)
+    avg_ssim_struct = total_ssim_struct / len(test_dataloader)
     average_loss = total_loss / len(test_dataloader)
 
 
@@ -171,6 +199,7 @@ def evaluate_model(model, test_dataloader, criterion_str, device, mask_path, cro
         'average_mae': avg_mae,
         'average_psnr': avg_psnr,
         'average_ssim': avg_ssim,
+        'average_ssim_struct': avg_ssim_struct,
         'average_loss': average_loss,
         'confusion_matrices': confusion_matrices,
         'accuracy_scores': accuracy_scores

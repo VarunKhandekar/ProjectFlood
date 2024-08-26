@@ -19,5 +19,3 @@ if __name__ == "__main__":
         
     print(combined_mask)
     np.save(f"{data_config['model_results_path']}/perm_water_mask_{resolution}.npy", combined_mask)
-
-    
