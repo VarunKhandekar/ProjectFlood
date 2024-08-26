@@ -7,15 +7,12 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import confusion_matrix, auc
 import matplotlib.pyplot as plt
-import csv
-import json
-import os
 from models.ConvLSTMSeparateBranches import *
 from models.ConvLSTMMerged import *
 from evaluation.model_evaluation_helpers import *
 
 
-def load_checkpoint(filepath):
+def load_checkpoint(filepath: str):
     checkpoint = torch.load(filepath)
     hyperparams = checkpoint['hyperparams']
     print(checkpoint['hyperparams'].keys())
@@ -40,29 +37,29 @@ def load_checkpoint(filepath):
     return model, optimizer, checkpoint['epoch'], hyperparams
 
 
-def KL_DivLoss(y_pred, y_true):
+def KL_DivLoss(y_pred: torch.Tensor, y_true: torch.Tensor):
     kl_loss = torch.nn.KLDivLoss(reduction="batchmean", log_target=True)
     log_input = F.log_softmax(y_pred, dim=1)
     log_target = F.log_softmax(y_true, dim=1)
     return kl_loss(log_input, log_target)
 
 
-def RMSELoss(y_pred, y_true):
+def RMSELoss(y_pred: torch.Tensor, y_true: torch.Tensor):
     mse_loss = torch.nn.MSELoss(reduction="mean")
     return torch.sqrt(mse_loss(y_true, y_pred))
 
 
-def MAELoss(y_pred, y_true):
+def MAELoss(y_pred: torch.Tensor, y_true: torch.Tensor):
     mae_loss = torch.nn.L1Loss(reduction="mean")
     return torch.sqrt(mae_loss(y_true, y_pred))  
 
 
-def PSNR(y_pred, y_true):
+def PSNR(y_pred: torch.Tensor, y_true: torch.Tensor):
     psnr = torchmetrics.PeakSignalNoiseRatio()
     return  psnr(y_pred, y_true)   
 
 
-def SSIM(y_pred, y_true):
+def SSIM(y_pred: torch.Tensor, y_true: torch.Tensor):
     if y_pred.dim() == 3:  # If shape is [B, H, W], add a channel dimension
         y_pred = y_pred.unsqueeze(1)  # Shape becomes [B, 1, H, W]
         y_true = y_true.unsqueeze(1)  # Shape becomes [B, 1, H, W]
@@ -70,7 +67,7 @@ def SSIM(y_pred, y_true):
     return ssim(y_pred, y_true)
 
 
-def SSIM_structural(y_pred, y_true, C3=1e-3, epsilon=1e-10):
+def SSIM_structural(y_pred: torch.Tensor, y_true: torch.Tensor, C3: float = 1e-3, epsilon:float = 1e-10):
     if y_pred.dim() == 3:  # If shape is [B, H, W], add a channel dimension
         y_pred = y_pred.unsqueeze(1)  # Shape becomes [B, 1, H, W]
         y_true = y_true.unsqueeze(1)  # Shape becomes [B, 1, H, W]
@@ -94,22 +91,7 @@ def SSIM_structural(y_pred, y_true, C3=1e-3, epsilon=1e-10):
     return s.mean()
 
 
-def calculate_metrics(y_pred, y_true):
-    metric_list = [
-        ("kl_div", KL_DivLoss), 
-        ("rmse", RMSELoss), 
-        ("mae", MAELoss),
-        ("psnr", PSNR),
-        ("ssim", SSIM),
-    ]
-    metric_dict = {}
-    for metric_name, metric_function in metric_list:
-        metric_dict[metric_name] = metric_function(y_pred, y_true)
-    return metric_dict
-
-
-
-def evaluate_model(model, test_dataloader, criterion_str, device, mask_path, crop_right, crop_bottom, crop_left: int = 0, crop_top: int = 0):
+def evaluate_model(model, test_dataloader, criterion_str: str, device, mask_path: str, crop_right: int, crop_bottom: int, crop_left: int = 0, crop_top: int = 0):
     model = model.to(device)
     model.eval()
     criterion = getattr(torch.nn, criterion_str)()
@@ -226,10 +208,16 @@ def evaluate_model(model, test_dataloader, criterion_str, device, mask_path, cro
     metric_accumulator['f1_scores'] = f1_scores
     metric_accumulator['false_positive_rates'] = false_positive_rates
 
+    print('Accuracy scores:',  metric_accumulator['accuracy_scores'])
+    print('Precision scores:',  metric_accumulator['precision_scores'])
+    print('Recall scores:',  metric_accumulator['recall_scores'])
+    print('F1 scores:',  metric_accumulator['f1_scores'])
+    print('False Positive scores:',  metric_accumulator['false_positive_rates'])
+
     return metric_accumulator
 
 
-def plot_metrics_vs_thresholds(metric_accumulators, filename, titles=None):
+def plot_metrics_vs_thresholds(metric_accumulators: list, filename: str, titles: list = None):
     """
     Plots Precision, Recall, Accuracy, and F1 Scores against Thresholds for a list of metric accumulators.
 
@@ -237,7 +225,6 @@ def plot_metrics_vs_thresholds(metric_accumulators, filename, titles=None):
     - metric_accumulators (list of dict): A list where each element is a metric_accumulator dictionary.
     - titles (list of str, optional): A list of titles for each subplot. If not provided, subplots will be numbered.
 
-    The function generates and displays subplots with these metrics against the thresholds.
     """
     
     num_plots = len(metric_accumulators)
@@ -277,7 +264,7 @@ def plot_metrics_vs_thresholds(metric_accumulators, filename, titles=None):
     plt.show()
 
 
-def plot_roc_auc_curves(metric_accumulators, filename, titles=None):
+def plot_roc_auc_curves(metric_accumulators: list, filename: str, titles: list = None):
     """
     Plots the ROC curve and calculates the AUC (Area Under the Curve) for each metric_accumulator in the list.
 
@@ -286,7 +273,6 @@ def plot_roc_auc_curves(metric_accumulators, filename, titles=None):
       'false_positive_rate' and 'recall_scores' (True Positive Rate).
     - titles (list of str, optional): A list of titles for each subplot. If not provided, subplots will be numbered.
 
-    The function generates and displays the ROC curve subplots with AUC for each metric_accumulator.
     """
     
     num_plots = len(metric_accumulators)
@@ -321,7 +307,7 @@ def plot_roc_auc_curves(metric_accumulators, filename, titles=None):
     plt.show()
 
 
-def save_metrics_to_csv(metric_accumulators, model_names, filename):
+def save_metrics_to_csv(metric_accumulators: list, model_names: list, filename: str):
     data = {}
     for metric_accumulator in metric_accumulators:
         for key, value in metric_accumulator.items():
