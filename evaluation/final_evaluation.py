@@ -42,8 +42,12 @@ if __name__=="__main__":
     # Calculate loss metrics, one epoch
     mask_path = os.path.join(data_config["model_results_path"], f"perm_water_mask_{resolution}.npy")
     
+    print("========= SEPARATE BRANCH ==============")
     sep_branch_metrics = evaluate_model(final_sep_branch_model, sep_branch_test_dataloader, final_sep_branch_params['criterion'], device, new_dimension_right, new_dimension_bottom)
+    print("\n\n")
+    print("========= MERGED BRANCH ==============")
     merged_metrics = evaluate_model(final_merged_model, merged_test_dataloader, final_sep_branch_params['criterion'], device, new_dimension_right, new_dimension_bottom)
+    print("\n\n")
 
     # Plot loss metrics by threshold
     metric_combo = [sep_branch_metrics, merged_metrics]

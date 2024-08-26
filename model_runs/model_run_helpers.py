@@ -95,6 +95,7 @@ def train_model(data_config_path: str, model,  criterion_type: str, optimizer_ty
                 epochs_no_improve += 1
             
             if epochs_no_improve >= early_stopping_patience:
+                print(optimizer.param_groups[0]['lr'])
                 save_checkpoint(model, optimizer, epoch, os.path.join(data_config["saved_models_path"], f"{model.name}_{epoch}_earlystop.pt"), hyperparams)
                 print(f'Early stopping triggered after {epoch} epochs')
                 break

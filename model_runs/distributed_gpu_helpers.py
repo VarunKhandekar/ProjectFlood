@@ -100,6 +100,7 @@ def train_model_dist(rank: int, world_size: int, data_config_path: str, model,  
                 epochs_no_improve += 1
             
             if epochs_no_improve >= early_stopping_patience:
+                print(optimizer.param_groups[0]['lr'])
                 save_checkpoint(model, optimizer, epoch, os.path.join(data_config["saved_models_path"], f"{get_attribute(model, 'name')}_{epoch}_earlystop.pt"), hyperparams)
                 print(f'Early stopping triggered after {epoch} epochs')
                 break
