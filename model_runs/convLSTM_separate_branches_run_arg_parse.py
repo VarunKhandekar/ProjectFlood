@@ -1,10 +1,8 @@
 import torch
-import torch.nn as nn
-import torch.optim as optim
+import datetime
 import os
 import argparse
 import time
-from torch.utils.data import DataLoader
 from dataloaders.convLSTM_dataset import *
 from dataloaders.custom_image_transforms import *
 from models.ConvLSTMSeparateBranches import *
@@ -66,8 +64,6 @@ if __name__ == "__main__":
     }
     print(hyperparams)
 
-
-
     with open(os.environ["PROJECT_FLOOD_DATA"]) as config_file_path:
         config_data = json.load(config_file_path)
 
@@ -77,14 +73,9 @@ if __name__ == "__main__":
     # Build the model
     model = ConvLSTMSeparateBranches(preceding_rainfall_days, 1, output_channels, conv_block_layers, convLSTM_layers, dropout_prob)
     model = model.to(device)
-    # params = list(model.parameters())
 
     model_name = generate_model_name(model.__class__.__name__, model_run_date, **hyperparams)
     model.name = model_name
-
-    # optimizer = getattr(optim, hyperparams['optimizer_type'])(model.parameters(), lr=learning_rate)
-    # optimizer = optim.Adam(params, lr=learning_rate)
-    # criterion = nn.BCEWithLogitsLoss()
 
     # Set up dataloaders
     validation_batch_size = 16
