@@ -1,10 +1,8 @@
 import torch
-import torch.nn as nn
-import torch.optim as optim
+import datetime
 import os
 import time
 import argparse
-from torch.utils.data import DataLoader
 from dataloaders.convLSTM_dataset import *
 from dataloaders.custom_image_transforms import *
 from models.ConvLSTMMerged import *

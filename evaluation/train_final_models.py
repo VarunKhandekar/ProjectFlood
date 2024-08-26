@@ -1,3 +1,4 @@
+import datetime
 from evaluation.model_evaluation_helpers import *
 from model_runs.model_run_helpers import *
 from model_runs.distributed_gpu_helpers import *
@@ -57,6 +58,8 @@ if __name__=="__main__":
 
         
     # Train merged and separate_branches
+    epochs = 2000 #Manually set as we have early stopping in place. What was previous optimal epochs might be different
+
     torch.multiprocessing.spawn(train_model_dist, args=(world_size, os.environ['PROJECT_FLOOD_DATA'], 
                                                         sep_branch_model, 
                                                         best_sep_branch_params['criterion'], 

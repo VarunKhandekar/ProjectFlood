@@ -1,4 +1,3 @@
-import torch
 import torch.optim as optim
 from typing import Literal
 from torch.utils.data import DataLoader

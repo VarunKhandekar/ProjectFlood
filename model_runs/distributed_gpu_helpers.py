@@ -1,6 +1,3 @@
-import torch
-import torch.optim as optim
-from torch.utils.data import DataLoader, Dataset
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
 from dataloaders.convLSTM_dataset import *
