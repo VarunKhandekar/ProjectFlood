@@ -1,11 +1,7 @@
 import torch
 import torch.optim as optim
-
-import datetime
 from typing import Literal
 from torch.utils.data import DataLoader
-# import optuna
-# from optuna.integration import PyTorchLightningPruningCallback
 from dataloaders.convLSTM_dataset import *
 from models.ConvLSTMSeparateBranches import *
 from models.ConvLSTMMerged import *
@@ -25,7 +21,7 @@ def generate_model_name(base_name, date_today, **kwargs):
     # EXAMPLE: ConvLSTMSeparateBranches_num_epochs10_train_batch_size32_learning_rate0p0001_20240805
     # Replace periods in hyperparameter values with 'p'
     hyperparams_str = "_".join(f"{key}{str(value).replace('.', 'p')}" for key, value in kwargs.items())
-    model_name = f"{base_name}_{hyperparams_str}_{date_today}_f16"
+    model_name = f"{base_name}_{hyperparams_str}_{date_today}"
     return model_name
 
 
@@ -47,12 +43,12 @@ def train_model(data_config_path: str, model,  criterion_type: str, optimizer_ty
         'transforms': True if train_dataloader.dataset.transform else False,
         'res': train_dataloader.dataset.resolution
     }
-    # print(hyperparams)
 
     with open(data_config_path) as data_config_file:
         data_config = json.load(data_config_file)
 
     optimizer = getattr(optim, optimizer_type)(model.parameters(), lr=lr)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10, threshold=0.0001, threshold_mode='rel')
     criterion = getattr(nn, criterion_type)() #Default for BCELogitsLoss is mean reduction over the batch in question
 
     model = model.to(device)
@@ -62,6 +58,8 @@ def train_model(data_config_path: str, model,  criterion_type: str, optimizer_ty
 
     best_epoch = 0
     best_val_loss = np.inf
+    early_stopping_patience = 50  # Stop training if no improvement after 50 epochs
+    epochs_no_improve = 0
     for epoch in range(1, num_epochs+1):
         # TRAINING
         model.train()
@@ -88,10 +86,19 @@ def train_model(data_config_path: str, model,  criterion_type: str, optimizer_ty
         # COLLECT VALIDATION LOSSES
         if val_dataloader: # Check if we even want validation losses
             validation_epoch_average_loss = validate_model(model, val_dataloader, criterion, device)
+            scheduler.step(validation_epoch_average_loss)
             validation_losses.append(validation_epoch_average_loss)
             if validation_epoch_average_loss < best_val_loss:
                 best_epoch = epoch
                 best_val_loss = validation_epoch_average_loss
+                epochs_no_improve = 0
+            else:
+                epochs_no_improve += 1
+            
+            if epochs_no_improve >= early_stopping_patience:
+                save_checkpoint(model, optimizer, epoch, os.path.join(data_config["saved_models_path"], f"{model.name}_{epoch}_earlystop.pt"), hyperparams)
+                print(f'Early stopping triggered after {epoch} epochs')
+                break
 
         if epoch % 100 == 0:
             print(f'Epoch {epoch}/{num_epochs}, Loss: {loss.item():.4f}, Val Loss: {validation_epoch_average_loss:.4f}')
