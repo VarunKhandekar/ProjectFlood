@@ -1,13 +1,8 @@
 import torch
 import torch.optim as optim
-import csv
-import datetime
-from typing import Literal
 from torch.utils.data import DataLoader, Dataset
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
-# import optuna
-# from optuna.integration import PyTorchLightningPruningCallback
 from dataloaders.convLSTM_dataset import *
 from models.ConvLSTMSeparateBranches import *
 from visualisations.visualisation_helpers import *
@@ -44,12 +39,12 @@ def train_model_dist(rank: int, world_size: int, data_config_path: str, model,  
         data_config = json.load(data_config_file)
 
     optimizer = getattr(optim, optimizer_type)(model.parameters(), lr=lr)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10, threshold=0.0001, threshold_mode='rel')
     criterion = getattr(nn, criterion_type)() #Default for BCE is mean reduction over the batch in question
 
     # Set up training dataloader
     sampler = torch.utils.data.distributed.DistributedSampler(train_dataset, num_replicas=world_size, rank=rank)
     train_dataloader = DataLoader(dataset=train_dataset, batch_size=train_batch_size, sampler=sampler)
-    
 
     hyperparams = {
         'epochs': num_epochs,
@@ -65,7 +60,6 @@ def train_model_dist(rank: int, world_size: int, data_config_path: str, model,  
         'transforms': True if train_dataset.transform else False,
         'res': train_dataset.resolution
     }
-    # print(hyperparams)
 
     training_losses = []
     validation_losses = []
@@ -73,6 +67,8 @@ def train_model_dist(rank: int, world_size: int, data_config_path: str, model,  
 
     best_epoch = 0
     best_val_loss = np.inf
+    early_stopping_patience = 50  # Stop training if no improvement after 50 epochs
+    epochs_no_improve = 0
     for epoch in range(1, num_epochs+1):
         # TRAINING
         model.train()
@@ -86,7 +82,6 @@ def train_model_dist(rank: int, world_size: int, data_config_path: str, model,  
             loss.backward()
             optimizer.step()
             # last_outputs, last_labels = torch.sigmoid(outputs), labels # apply sigmoid for charting purposes
-
             training_epoch_loss += loss.item()
             num_batches += 1
 
@@ -95,14 +90,22 @@ def train_model_dist(rank: int, world_size: int, data_config_path: str, model,  
         training_losses.append(training_epoch_average_loss)
         epochs.append(epoch)
 
-
         # COLLECT VALIDATION LOSSES; get best epoch 
         if val_dataloader: # Check if we even can do validation losses
             validation_epoch_average_loss = validate_model(model, val_dataloader, criterion, rank)
+            scheduler.step(validation_epoch_average_loss)
             validation_losses.append(validation_epoch_average_loss)
             if validation_epoch_average_loss < best_val_loss:
                 best_epoch = epoch
                 best_val_loss = validation_epoch_average_loss
+                epochs_no_improve = 0
+            else:
+                epochs_no_improve += 1
+            
+            if epochs_no_improve >= early_stopping_patience:
+                save_checkpoint(model, optimizer, epoch, os.path.join(data_config["saved_models_path"], f"{get_attribute(model, 'name')}_{epoch}_earlystop.pt"), hyperparams)
+                print(f'Early stopping triggered after {epoch} epochs')
+                break
 
         if epoch % 100 == 0 and rank == 0:
             print(f'Epoch {epoch}/{num_epochs}, Loss: {loss.item():.4f}, Val Loss: {validation_epoch_average_loss:.4f}')
