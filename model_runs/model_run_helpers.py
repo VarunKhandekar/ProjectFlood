@@ -47,7 +47,7 @@ def train_model(data_config_path: str, model,  criterion_type: str, optimizer_ty
         data_config = json.load(data_config_file)
 
     optimizer = getattr(optim, optimizer_type)(model.parameters(), lr=lr)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10, threshold=0.0001, threshold_mode='rel')
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=50, min_lr=0.0001, threshold=0.0001, threshold_mode='rel')
     criterion = getattr(nn, criterion_type)() #Default for BCELogitsLoss is mean reduction over the batch in question
 
     model = model.to(device)

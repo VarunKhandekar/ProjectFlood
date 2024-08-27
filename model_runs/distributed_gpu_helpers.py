@@ -36,7 +36,7 @@ def train_model_dist(rank: int, world_size: int, data_config_path: str, model,  
         data_config = json.load(data_config_file)
 
     optimizer = getattr(optim, optimizer_type)(model.parameters(), lr=lr)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10, threshold=0.0001, threshold_mode='rel')
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=50, min_lr=0.0001, threshold=0.0001, threshold_mode='rel')
     criterion = getattr(nn, criterion_type)() #Default for BCE is mean reduction over the batch in question
 
     # Set up training dataloader
@@ -83,27 +83,53 @@ def train_model_dist(rank: int, world_size: int, data_config_path: str, model,  
             num_batches += 1
 
         # Save values down for loss chart plotting
-        training_epoch_average_loss = training_epoch_loss/num_batches
-        training_losses.append(training_epoch_average_loss)
-        epochs.append(epoch)
+        # Synchronise across GPUs
+        training_epoch_loss_tensor = torch.tensor(training_epoch_loss, dtype=torch.float, device='cuda')
+        dist.all_reduce(training_epoch_loss_tensor, op=dist.ReduceOp.SUM)
+        training_epoch_average_loss = training_epoch_loss_tensor.item() / (num_batches * dist.get_world_size())
+        if rank == 0: #Only bother collecting in main process
+            training_losses.append(training_epoch_average_loss)
+            epochs.append(epoch)
 
         # COLLECT VALIDATION LOSSES; get best epoch 
         if val_dataloader: # Check if we even can do validation losses
             validation_epoch_average_loss = validate_model(model, val_dataloader, criterion, rank)
-            scheduler.step(validation_epoch_average_loss)
+
+            #Synchronise across GPUs; get average validation_epoch loss
+            validation_epoch_average_loss_tensor = torch.tensor([validation_epoch_average_loss], dtype=torch.float, device='cuda')
+            dist.all_reduce(validation_epoch_average_loss_tensor, op=dist.ReduceOp.SUM)
+            validation_epoch_average_loss = validation_epoch_average_loss_tensor.item() / dist.get_world_size()
+
+            scheduler.step(validation_epoch_average_loss) #adjust LR based on that
             validation_losses.append(validation_epoch_average_loss)
-            if validation_epoch_average_loss < best_val_loss:
+
+            is_best = validation_epoch_average_loss < best_val_loss
+            #Broadcast if this is the best average val loss seen so far. Set this for all GPUs
+            is_best_tensor = torch.tensor([is_best], dtype=torch.int, device='cuda')
+            dist.broadcast(is_best_tensor, src=0) #Any other GPUs will be forced to wait until rank=0 catches up if it is behind
+            is_best = is_best_tensor.item()
+            
+            if is_best:
                 best_epoch = epoch
                 best_val_loss = validation_epoch_average_loss
                 epochs_no_improve = 0
             else:
                 epochs_no_improve += 1
             
+            #Broadcast these rank=0 variables to all GPUs
+            best_val_loss_tensor = torch.tensor([best_val_loss], dtype=torch.float, device='cuda')
+            epochs_no_improve_tensor = torch.tensor([epochs_no_improve], dtype=torch.int, device='cuda')
+            dist.broadcast(best_val_loss_tensor, src=0)
+            dist.broadcast(epochs_no_improve_tensor, src=0)
+            best_val_loss = best_val_loss_tensor.item()
+            epochs_no_improve = epochs_no_improve_tensor.item()
+            
             if epochs_no_improve >= early_stopping_patience:
-                print(optimizer.param_groups[0]['lr'])
-                save_checkpoint(model, optimizer, epoch, os.path.join(data_config["saved_models_path"], f"{get_attribute(model, 'name')}_{epoch}_earlystop.pt"), hyperparams)
-                print(f'Early stopping triggered after {epoch} epochs')
-                break
+                if rank == 0: #Only print main process bits
+                    print(optimizer.param_groups[0]['lr'])
+                    save_checkpoint(model, optimizer, epoch, os.path.join(data_config["saved_models_path"], f"{get_attribute(model, 'name')}_{epoch}_earlystop.pt"), hyperparams)
+                    print(f'Early stopping triggered after {epoch} epochs')
+                    break
 
         if epoch % 100 == 0 and rank == 0:
             print(f'Epoch {epoch}/{num_epochs}, Loss: {loss.item():.4f}, Val Loss: {validation_epoch_average_loss:.4f}')
