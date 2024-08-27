@@ -101,7 +101,7 @@ def train_model(data_config_path: str, model,  criterion_type: str, optimizer_ty
                 break
 
         if epoch % 100 == 0:
-            print(f'Epoch {epoch}/{num_epochs}, Loss: {loss.item():.4f}, Val Loss: {validation_epoch_average_loss:.4f}')
+            print(f"Epoch {epoch}/{num_epochs}, Loss: {loss.item():.4f}, Val Loss: {validation_epoch_average_loss:.4f}, LR: {optimizer.param_groups[0]['lr']}")
 
         # Save model snapshot
         if epoch % 1000 == 0:
