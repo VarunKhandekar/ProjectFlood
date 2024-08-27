@@ -126,13 +126,12 @@ def train_model_dist(rank: int, world_size: int, data_config_path: str, model,  
             
             if epochs_no_improve >= early_stopping_patience:
                 if rank == 0: #Only print main process bits
-                    print("Final LR:", optimizer.param_groups[0]['lr'])
                     save_checkpoint(model, optimizer, epoch, os.path.join(data_config["saved_models_path"], f"{get_attribute(model, 'name')}_{epoch}_earlystop.pt"), hyperparams)
                     print(f'Early stopping triggered after {epoch} epochs')
                     break
 
         if epoch % 100 == 0 and rank == 0:
-            print(f'Epoch {epoch}/{num_epochs}, Loss: {loss.item():.4f}, Val Loss: {validation_epoch_average_loss:.4f}')
+            print(f"Epoch {epoch}/{num_epochs}, Loss: {loss.item():.4f}, Val Loss: {validation_epoch_average_loss:.4f}, LR: {optimizer.param_groups[0]['lr']}")
 
         # Save model snapshot
         if epoch % 500 == 0 and rank == 0:
