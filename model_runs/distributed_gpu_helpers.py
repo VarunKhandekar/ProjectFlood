@@ -64,7 +64,7 @@ def train_model_dist(rank: int, world_size: int, data_config_path: str, model,  
 
     best_epoch = 0
     best_val_loss = np.inf
-    early_stopping_patience = 50  # Stop training if no improvement after 50 epochs
+    early_stopping_patience = 75  # Stop training if no improvement after 50 epochs
     epochs_no_improve = 0
     for epoch in range(1, num_epochs+1):
         # TRAINING
@@ -126,7 +126,7 @@ def train_model_dist(rank: int, world_size: int, data_config_path: str, model,  
             
             if epochs_no_improve >= early_stopping_patience:
                 if rank == 0: #Only print main process bits
-                    print(optimizer.param_groups[0]['lr'])
+                    print("Final LR:", optimizer.param_groups[0]['lr'])
                     save_checkpoint(model, optimizer, epoch, os.path.join(data_config["saved_models_path"], f"{get_attribute(model, 'name')}_{epoch}_earlystop.pt"), hyperparams)
                     print(f'Early stopping triggered after {epoch} epochs')
                     break
@@ -141,6 +141,7 @@ def train_model_dist(rank: int, world_size: int, data_config_path: str, model,  
     # Save end model
     if rank == 0:
         print("Best epoch:", best_epoch, "; Lowest validation loss:", best_val_loss)
+        print("Final LR:", optimizer.param_groups[0]['lr'])
         if is_final:
             save_checkpoint(model, optimizer, epoch, os.path.join(data_config["saved_models_path"], f"{get_attribute(model, 'name')}_{epoch}_FINAL.pt"), hyperparams)
         else:
