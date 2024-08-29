@@ -10,7 +10,6 @@ from model_runs.model_run_helpers import *
 from model_runs.distributed_gpu_helpers import *
 
 
-
 if __name__ == "__main__":
     start_time = time.time()
     # CONFIGURATION AND HYPERPARAMETERS

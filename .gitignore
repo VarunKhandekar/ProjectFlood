@@ -170,3 +170,4 @@ scripts/archive/
 # gpu/availability.py
 requirements.txt
 data_extraction/data_cut.py
+archive/
