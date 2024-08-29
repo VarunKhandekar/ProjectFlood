@@ -37,6 +37,7 @@ def plot_bangladesh_flood_distribution(core_config_file_path: str, data_config_f
     plt.savefig(output_file_name, bbox_inches='tight')
     plt.show()
 
+
 def plot_bangladesh_monthly_soil_moisture(data_config_file_path: str, shape: ee.geometry.Geometry):  
     with open(data_config_file_path) as data_config_file:
         data_config = json.load(data_config_file)
@@ -126,6 +127,7 @@ def plot_soil_moisture_grid(data_config_file_path: str):
     output_file_name = os.path.join(data_config['project_report_visuals'], 'bangladesh_soil_moisture_grid.png')
     plt.savefig(output_file_name, bbox_inches='tight')
     plt.show()
+
 
 if __name__ == "__main__":
     with open(os.environ["PROJECT_FLOOD_CORE_PATHS"]) as core_config_file:

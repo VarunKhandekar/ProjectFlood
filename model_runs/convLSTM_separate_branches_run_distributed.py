@@ -8,7 +8,6 @@ from model_runs.model_run_helpers import *
 from model_runs.distributed_gpu_helpers import *
 
 
-
 if __name__ == "__main__":
     # CONFIGURATION AND HYPERPARAMETERS
     model_run_date = datetime.date.today().strftime(r'%Y%m%d')

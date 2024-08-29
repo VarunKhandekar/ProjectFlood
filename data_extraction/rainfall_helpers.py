@@ -4,7 +4,6 @@ from pydrive.drive import GoogleDrive
 import os
 import xarray as xr
 from shapely.geometry import Polygon, mapping
-# from osgeo import gdal
 import rasterio
 from rasterio.transform import from_origin
 from rasterio.warp import reproject, Resampling
