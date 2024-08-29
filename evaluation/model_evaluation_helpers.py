@@ -12,7 +12,8 @@ from evaluation.model_evaluation_helpers import *
 
 
 def load_checkpoint(filepath: str):
-    checkpoint = torch.load(filepath)
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    checkpoint = torch.load(filepath, map_location=device)
     hyperparams = checkpoint['hyperparams']
     print(checkpoint['hyperparams'].keys())
     if checkpoint['model_type'] == "ConvLSTMSeparateBranches":
@@ -226,3 +227,17 @@ def save_metrics_to_csv(metric_accumulators: list, model_names: list, filename: 
 
     df = pd.DataFrame(data, index=model_names).T
     df.to_csv(filename)
+
+
+def collect_images(model, dataloader, size):
+    flooded_images, non_flooded_images = [], []
+    for inputs, targets, flooded in dataloader:
+        outputs = model(inputs)
+        for i in range(len(flooded)):
+            if flooded[i] == 1 and len(flooded_images) < size:
+                flooded_images.append((outputs[i], targets[i], flooded[i]))
+            elif flooded[i] == 0 and len(non_flooded_images) < size:
+                non_flooded_images.append((outputs[i], targets[i], flooded[i]))
+            if len(flooded_images) >= size and len(non_flooded_images) >= size:
+                return flooded_images, non_flooded_images
+    return flooded_images, non_flooded_images # list of tuples

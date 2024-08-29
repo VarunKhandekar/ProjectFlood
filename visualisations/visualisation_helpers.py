@@ -1,9 +1,13 @@
 import os
 import json
 import re
+import torch
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 from matplotlib.colors import LinearSegmentedColormap
+import matplotlib.colors as mcolors
+import cartopy.crs as ccrs
+import cartopy.feature as cfeature
 from sklearn.metrics import auc
 from PIL import Image
 import numpy as np
@@ -138,18 +142,71 @@ def strip_black_pixel_padding_PIL(config_file_path: str, resolution: int, image_
     return cropped_image
 
 
+def plot_pixel_difference(model_name, outputs, labels, labels_flooded, filename):
+    if isinstance(outputs[0], torch.Tensor):
+        outputs = [i.cpu().numpy() for i in outputs] 
+    if isinstance(labels[0], torch.Tensor):
+        labels = [l.cpu().numpy() for l in labels]
+
+    difference_cmap = mcolors.LinearSegmentedColormap.from_list("", ["white", "red"])
+
+    # Create a grid of subplots; figsize is columns, rows
+    x, y = labels[0].shape
+    width_adjustment = (y/x)*1.03
+    num_images = len(labels)
+    scale_factor = 2
+    fig, axes = plt.subplots(num_images, 3, figsize=(3*width_adjustment*scale_factor, num_images*scale_factor)) 
+
+    for i in range(num_images):
+        # Truth
+        ax = axes[i, 0]
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.imshow(labels[i], cmap='gray', vmin=0, vmax=1)
+        if i == 0:
+            ax.set_title('Truth')
+        if labels_flooded[i]:
+            ax.set_ylabel('Flood', rotation=90, size='large')
+            ax.yaxis.set_label_position("left")
+        else:
+            ax.set_ylabel('No Flood', rotation=90, size='large')
+            ax.yaxis.set_label_position("left")
+        
+        # Output
+        ax = axes[i, 1]
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.imshow(outputs[i], cmap='gray', vmin=0, vmax=1)
+        if i == 0:
+            ax.set_title('Prediction')
+        # Pixel difference
+        ax = axes[i, 2]
+        ax.set_xticks([])
+        ax.set_yticks([])
+        absolute_pixel_difference = np.abs(outputs[i] - labels[i])
+        ax.imshow(absolute_pixel_difference, cmap=difference_cmap, vmin=0, vmax=1)
+        if i == 0:
+            ax.set_title('Difference')
+
+    fig.suptitle(f"Pixel Difference: {model_name}", fontsize=16, y=0.93)
+    plt.savefig(filename, bbox_inches='tight')
+    plt.close()
+
+
 def plot_final_model_output_vs_label(model_names, outputs, labels, labels_flooded, filename, risk=False):
     num_images = len(labels)  # Number of images to display
     # fig, axes = plt.subplots(len(model_names) + 1, num_images, figsize=(num_images*3, (len(model_names) + 1)*3))  # Create a grid of subplots; figsize is columns, rows
     fig = plt.figure(figsize=(num_images*2.5, (len(model_names) + 1)*2.5))  # Create a grid of subplots; figsize is columns, rows
-
     gs = GridSpec(len(model_names) + 1, num_images, figure=fig, wspace=0.000, hspace=0.02)
 
-    outputs = [[i.cpu() for i in output] for output in outputs]
-    labels = [l.cpu() for l in labels]
+    if isinstance(outputs[0][0], torch.Tensor):
+        outputs = [[i.cpu().numpy() for i in output] for output in outputs]
+    if isinstance(labels[0], torch.Tensor):
+        labels = [l.cpu().numpy() for l in labels]
 
     if risk:
         risk_cmap = LinearSegmentedColormap.from_list('custom_cmap', [(0, 'green'), (0.5, 'yellow'), (1, 'red')])
+        risk_cmap.set_bad(color='black')
 
     for i in range(num_images):
         # Display true labels
@@ -172,9 +229,9 @@ def plot_final_model_output_vs_label(model_names, outputs, labels, labels_floode
             # ax = axes[j+1, i]
             ax = fig.add_subplot(gs[j + 1, i])
             if risk:
-                ax.imshow(labels[i], cmap=risk_cmap, vmin=0, vmax=1)
+                im = ax.imshow(outputs[j][i], cmap=risk_cmap, vmin=0, vmax=1)
             else:
-                ax.imshow(labels[i], cmap='gray', vmin=0, vmax=1)  # grayscale
+                im = ax.imshow(outputs[j][i], cmap='gray', vmin=0, vmax=1)  # grayscale
             ax.set_xticks([])
             ax.set_yticks([])
             if i == 0:
@@ -183,8 +240,100 @@ def plot_final_model_output_vs_label(model_names, outputs, labels, labels_floode
                 # ax.set_ylabel(f"{model_names[j]} Output", rotation=90, fontsize=10)
                 ax.yaxis.set_label_position("left")
 
+    if risk:
+        cbar = fig.colorbar(im, ax=fig.get_axes(), orientation='vertical', fraction=0.02, pad=0.04)
+        cbar.set_label('Probability of Flooding', rotation=270, labelpad=15)
     # fig.tight_layout()
     # fig.subplots_adjust(wspace=0.001)
+    plt.savefig(filename, bbox_inches='tight')
+    plt.close()
+
+
+def plot_risk_on_map(model_names, outputs, labels, labels_flooded, filename, crs_transform):
+    num_images = len(labels)  # Number of images to display
+    # fig, axes = plt.subplots(len(model_names) + 1, num_images, figsize=(num_images*3, (len(model_names) + 1)*3))  # Create a grid of subplots; figsize is columns, rows
+    fig = plt.figure(figsize=(num_images*4, (len(model_names) + 1)*4))  # Create a grid of subplots; figsize is columns, rows
+    gs = GridSpec(len(model_names) + 1, num_images, figure=fig, wspace=0.002, hspace=0.0002)
+
+    if isinstance(outputs[0][0], torch.Tensor):
+        outputs = [[i.cpu().numpy() for i in output] for output in outputs]
+    if isinstance(labels[0], torch.Tensor):
+        labels = [l.cpu().numpy() for l in labels]
+
+    risk_cmap = LinearSegmentedColormap.from_list('custom_cmap', [(0, 'green'), (0.5, 'yellow'), (1, 'red')])
+    risk_cmap.set_bad(color='black')
+
+    extent = [
+        crs_transform[2],  # left (min longitude)
+        crs_transform[2] + crs_transform[0] * labels[0].shape[1],  # right (max longitude)
+        crs_transform[5] + crs_transform[4] * labels[0].shape[0],  # bottom (min latitude)
+        crs_transform[5]  # top (max latitude)
+    ]
+
+    for i in range(num_images):
+        # Display true labels
+        # Set up subplot
+        ax = fig.add_subplot(gs[0, i], projection=ccrs.PlateCarree())  
+        ax.add_feature(cfeature.COASTLINE)
+        ax.add_feature(cfeature.BORDERS, linestyle=':')
+        
+        # Set gridlines
+        gl = ax.gridlines(draw_labels=True, crs=ccrs.PlateCarree(), linewidth=0.5, color='gray', 
+                          alpha=0.6, linestyle='--')
+        gl.top_labels = False  
+        gl.right_labels = False 
+        gl.bottom_labels = False
+        gl.left_labels = False
+        if i == 0:
+            gl.left_labels = True
+        gl.ylabel_style = {'size': 10, 'color': 'black'}
+        gl.xlocator = plt.MaxNLocator(4)
+        gl.ylocator = plt.MaxNLocator(5)
+
+        im = ax.imshow(labels[i], extent=extent, transform=ccrs.PlateCarree(), cmap=risk_cmap, vmin=0, vmax=1, 
+                       alpha=0.75, interpolation='none')
+
+        if i == 0:
+            ax.text(-0.25, 0.5, 'Ground Truth', va='center', ha='right', 
+                    fontsize=12, transform=ax.transAxes, rotation=90)
+        if labels_flooded[i]:
+            ax.set_title('Flood')
+        else:
+            ax.set_title('No Flood')
+
+        # Display model outputs
+        for j in range(len(outputs)):
+            # Set up subplot
+            ax = fig.add_subplot(gs[j + 1, i], projection=ccrs.PlateCarree())
+            ax.add_feature(cfeature.COASTLINE)
+            ax.add_feature(cfeature.BORDERS, linestyle=':')
+
+            #Set gridlines
+            gl = ax.gridlines(draw_labels=True, crs=ccrs.PlateCarree(), linewidth=0.5, color='gray', 
+                              alpha=0.6, linestyle='--')
+            gl.bottom_labels = False
+            gl.left_labels = False 
+            gl.top_labels = False  
+            gl.right_labels = False 
+            if j == len(outputs)-1:
+                gl.bottom_labels = True
+            if i == 0:
+                gl.left_labels = True
+            gl.xlabel_style = {'size': 10, 'color': 'black'}
+            gl.ylabel_style = {'size': 10, 'color': 'black'}
+            gl.xlocator = plt.MaxNLocator(4)  # Reduce number of longitude labels
+            gl.ylocator = plt.MaxNLocator(5)
+
+            im = ax.imshow(outputs[j][i], extent=extent, transform=ccrs.PlateCarree(), cmap=risk_cmap, vmin=0, vmax=1, 
+                           alpha=0.75, interpolation='none')
+
+            if i == 0:
+                ax.text(-0.25, 0.5, f"{model_names[j]} Output", va='center', ha='right', 
+                    fontsize=12, transform=ax.transAxes, rotation=90)
+
+
+    cbar = fig.colorbar(im, ax=fig.get_axes(), orientation='vertical', fraction=0.02, pad=0.02)
+    cbar.set_label('Probability of Flooding', rotation=270, labelpad=15)
     plt.savefig(filename, bbox_inches='tight')
     plt.close()
 

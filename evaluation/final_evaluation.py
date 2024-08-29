@@ -39,9 +39,11 @@ if __name__=="__main__":
     match = re.search(r'_(\d+)_(\d+)\.tif$', dimension_string)
     new_dimension_right, new_dimension_bottom = int(match.group(1)), int(match.group(2))
 
-    # Calculate loss metrics, one epoch
+    # Get mask
     mask_path = os.path.join(data_config["model_results_path"], f"perm_water_mask_{resolution}.npy")
-    
+    perm_water_mask = np.load(os.path.join(data_config["model_results_path"], f"perm_water_mask_{resolution}.npy"))
+
+    # Calculate loss metrics, one epoch
     print("========= SEPARATE BRANCH ==============")
     sep_branch_metrics = evaluate_model(final_sep_branch_model, sep_branch_test_dataloader, final_sep_branch_params['criterion'], device, new_dimension_right, new_dimension_bottom)
     print("\n\n")
@@ -67,36 +69,8 @@ if __name__=="__main__":
     # Plot test images for each model
     with torch.no_grad():
         size = 3
-
-        sep_branch_flooded_images = []
-        sep_branch_non_flooded_images = []
-        for inputs, targets, flooded in sep_branch_test_dataloader:
-            sep_branch_outputs = final_sep_branch_model(inputs)
-            for i in range(len(flooded)):
-                if flooded[i] == 1 and len(sep_branch_flooded_images) < size:
-                    sep_branch_flooded_images.append((sep_branch_outputs[i], targets[i], flooded[i]))
-                elif flooded[i] == 0 and len(sep_branch_non_flooded_images) < size:
-                    sep_branch_non_flooded_images.append((sep_branch_outputs[i], targets[i], flooded[i]))
-                # Stop if we've collected 4 images in each category
-                if len(sep_branch_flooded_images) >= size and len(sep_branch_non_flooded_images) >= size:
-                    break
-            if len(sep_branch_flooded_images) >= 4 and len(sep_branch_non_flooded_images) >= 4:
-                break
-
-        merged_flooded_images = []
-        merged_non_flooded_images = []
-        for inputs, targets, flooded in merged_test_dataloader:
-            merged_outputs = final_merged_model(inputs)
-            for i in range(len(flooded)):
-                if flooded[i] == 1 and len(merged_flooded_images) < size:
-                    merged_flooded_images.append((merged_outputs[i], targets[i], flooded[i]))
-                elif flooded[i] == 0 and len(merged_non_flooded_images) < size:
-                    merged_non_flooded_images.append((merged_outputs[i], targets[i], flooded[i]))
-                # Stop if we've collected 4 images in each category
-                if len(merged_flooded_images) >= size and len(merged_non_flooded_images) >= size:
-                    break
-            if len(merged_flooded_images) >= 4 and len(merged_non_flooded_images) >= 4:
-                break
+        sep_branch_flooded_images, sep_branch_non_flooded_images = collect_images(final_sep_branch_model, sep_branch_test_dataloader, size)
+        merged_flooded_images, merged_non_flooded_images = collect_images(final_merged_model, merged_test_dataloader, size)
 
         selected_sep_branch_outputs = [img[0] for img in sep_branch_flooded_images + sep_branch_non_flooded_images]
         selected_sep_branch_outputs = [i[:new_dimension_bottom, :new_dimension_right] for i in selected_sep_branch_outputs] #crop
@@ -115,3 +89,19 @@ if __name__=="__main__":
         # Do plotting
         plot_filename = os.path.join(data_config["model_results_path"], "final_plots.png")
         plot_final_model_output_vs_label(model_names, selected_model_outputs, selected_targets, selected_targets_flooded, plot_filename)
+
+        # Risk chart
+        crs_transform = [0.0226492347869873, 0.0, 88.08430518433968, 0.0, -0.0226492347869873, 26.44864775268901]
+        selected_targets_risk = [np.ma.masked_array(i, mask=perm_water_mask) for i in selected_targets]
+        selected_sep_branch_outputs_risk = [np.ma.masked_array(i, mask=perm_water_mask) for i in selected_sep_branch_outputs]
+        selected_merged_outputs_risk = [np.ma.masked_array(i, mask=perm_water_mask) for i in selected_merged_outputs]
+        selected_model_outputs_risk = [selected_sep_branch_outputs_risk, selected_merged_outputs_risk]
+
+        plot_filename = os.path.join(data_config["model_results_path"], "final_plots_risk.png")
+        plot_risk_on_map(model_names, selected_model_outputs_risk, selected_targets_risk, selected_targets_flooded, plot_filename, crs_transform)
+
+        # Pixel differences
+        for i in range(len(model_names)):
+            plot_filename = os.path.join(data_config["model_results_path"], f"final_plots_{model_names[i]}_pixel_difference.png")
+            plot_pixel_difference(model_names[i], selected_model_outputs[i], selected_targets, selected_targets_flooded, plot_filename)
+
