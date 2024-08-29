@@ -5,8 +5,7 @@ import torch.nn.functional as F
 import torchmetrics
 import numpy as np
 import pandas as pd
-from sklearn.metrics import confusion_matrix, auc
-import matplotlib.pyplot as plt
+from sklearn.metrics import confusion_matrix
 from models.ConvLSTMSeparateBranches import *
 from models.ConvLSTMMerged import *
 from evaluation.model_evaluation_helpers import *
@@ -215,96 +214,6 @@ def evaluate_model(model, test_dataloader, criterion_str: str, device, mask_path
     print('False Positive scores:',  metric_accumulator['false_positive_rates'])
 
     return metric_accumulator
-
-
-def plot_metrics_vs_thresholds(metric_accumulators: list, filename: str, titles: list = None):
-    """
-    Plots Precision, Recall, Accuracy, and F1 Scores against Thresholds for a list of metric accumulators.
-
-    Parameters:
-    - metric_accumulators (list of dict): A list where each element is a metric_accumulator dictionary.
-    - titles (list of str, optional): A list of titles for each subplot. If not provided, subplots will be numbered.
-
-    """
-    
-    num_plots = len(metric_accumulators)
-    
-    # Create subplots
-    fig, axs = plt.subplots(1, num_plots, figsize=(15, 6), sharey=True)
-    
-    # If only one plot, convert axs to a list to maintain consistency
-    if num_plots == 1:
-        axs = [axs]
-
-    for i, metric_accumulator in enumerate(metric_accumulators):
-        # Extract thresholds, precision, recall, accuracy, and F1 scores from the metric_accumulator
-        thresholds = list(metric_accumulator['precision_scores'].keys())
-        precision_scores = list(metric_accumulator['precision_scores'].values())
-        recall_scores = list(metric_accumulator['recall_scores'].values())
-        accuracy_scores = list(metric_accumulator['accuracy_scores'].values())
-        f1_scores = list(metric_accumulator['f1_scores'].values())
-
-        axs[i].plot(thresholds, precision_scores, label='Precision')
-        axs[i].plot(thresholds, recall_scores, label='Recall')
-        axs[i].plot(thresholds, accuracy_scores, label='Accuracy')
-        axs[i].plot(thresholds, f1_scores, label='F1 Score')
-
-        if titles:
-            axs[i].set_title(titles[i])
-        axs[i].set_xlabel('Threshold')
-        if i == 0:  # Only set ylabel for the first subplot for clarity
-            axs[i].set_ylabel('Score')
-        
-        axs[i].legend()
-        axs[i].grid(True)
-
-    fig.suptitle("Performance Metrics by Threshold", fontsize=15, y=0.92)
-    plt.tight_layout()
-    plt.savefig(filename, bbox_inches='tight')
-    plt.show()
-
-
-def plot_roc_auc_curves(metric_accumulators: list, filename: str, titles: list = None):
-    """
-    Plots the ROC curve and calculates the AUC (Area Under the Curve) for each metric_accumulator in the list.
-
-    Parameters:
-    - metric_accumulators (list of dict): A list where each element is a metric_accumulator dictionary containing
-      'false_positive_rate' and 'recall_scores' (True Positive Rate).
-    - titles (list of str, optional): A list of titles for each subplot. If not provided, subplots will be numbered.
-
-    """
-    
-    num_plots = len(metric_accumulators)
-
-    fig, axs = plt.subplots(1, num_plots, figsize=(15, 6), sharey=True)
-    
-    # If only one plot, convert axs to a list to maintain consistency
-    if num_plots == 1:
-        axs = [axs]
-
-    for i, metric_accumulator in enumerate(metric_accumulators):
-        fpr = list(metric_accumulator['false_positive_rates'].values())
-        tpr = list(metric_accumulator['recall_scores'].values())
-        
-        roc_auc = auc(fpr, tpr) # Calculate AUC
-        
-        axs[i].plot(fpr, tpr, color='blue', lw=2, label=f'ROC curve (AUC = {roc_auc:.3f})')
-        axs[i].plot([0, 1], [0, 1], color='red', lw=2, linestyle='--', label='Random Classifier (AUC = 0.5)') # random classifier
-        
-        if titles:
-            axs[i].set_title(titles[i])
-        axs[i].set_xlabel('False Positive Rate (FPR)')
-        if i == 0:
-            axs[i].set_ylabel('True Positive Rate (TPR)')
-        
-        axs[i].legend(loc='lower right')
-        axs[i].grid(True)
-
-    fig.suptitle("ROC Curves", fontsize=15, y=0.92)
-    plt.tight_layout()
-    plt.savefig(filename, bbox_inches='tight')
-    plt.show()
 
 
 def save_metrics_to_csv(metric_accumulators: list, model_names: list, filename: str):

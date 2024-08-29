@@ -3,6 +3,8 @@ import json
 import re
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
+from matplotlib.colors import LinearSegmentedColormap
+from sklearn.metrics import auc
 from PIL import Image
 import numpy as np
 
@@ -89,52 +91,6 @@ def plot_model_output_vs_label_square(outputs, labels, labels_flooded, filename)
     plt.close()
 
 
-
-def plot_final_model_output_vs_label(model_names, outputs, labels, labels_flooded, filename):
-    num_images = len(labels)  # Number of images to display
-    # fig, axes = plt.subplots(len(model_names) + 1, num_images, figsize=(num_images*3, (len(model_names) + 1)*3))  # Create a grid of subplots; figsize is columns, rows
-    fig = plt.figure(figsize=(num_images*2.5, (len(model_names) + 1)*2.5))  # Create a grid of subplots; figsize is columns, rows
-
-    gs = GridSpec(len(model_names) + 1, num_images, figure=fig, wspace=0.000, hspace=0.02)
-
-    outputs = [[i.cpu() for i in output] for output in outputs]
-    labels = [l.cpu() for l in labels]
-
-    for i in range(num_images):
-        # Display true labels
-        # ax = axes[0, i]
-        ax = fig.add_subplot(gs[0, i])
-        ax.imshow(labels[i], cmap='gray', vmin=0, vmax=1)  # grayscale
-        ax.set_xticks([])
-        ax.set_yticks([])
-        if i == 0:
-            ax.set_ylabel('Ground Truth', rotation=90, size='large')
-            # ax.set_ylabel('Ground Truth', rotation=90, fontsize=10)
-            ax.yaxis.set_label_position("left")
-        if labels_flooded[i]:
-            ax.set_title('Flood')
-        else:
-            ax.set_title('No Flood')
-
-        # Display model outputs
-        for j in range(len(outputs)):
-            # ax = axes[j+1, i]
-            ax = fig.add_subplot(gs[j + 1, i])
-            ax.imshow(outputs[j][i], cmap='gray', vmin=0, vmax=1)
-            ax.set_xticks([])
-            ax.set_yticks([])
-            if i == 0:
-                # ax.set_ylabel('Model Output', rotation=0, size='large', labelpad=40)
-                ax.set_ylabel(f"{model_names[j]} Output", rotation=90, size='large')
-                # ax.set_ylabel(f"{model_names[j]} Output", rotation=90, fontsize=10)
-                ax.yaxis.set_label_position("left")
-
-    # fig.tight_layout()
-    # fig.subplots_adjust(wspace=0.001)
-    plt.savefig(filename, bbox_inches='tight')
-    plt.close()
-
-
 def plot_loss_chart(losses, epochs, filename, hyperparams):
     plt.figure(figsize=(10, 6))
     labels = ['train', 'validation', 'test']
@@ -180,3 +136,144 @@ def strip_black_pixel_padding_PIL(config_file_path: str, resolution: int, image_
     cropped_image = np.array(cropped_image)
 
     return cropped_image
+
+
+def plot_final_model_output_vs_label(model_names, outputs, labels, labels_flooded, filename, risk=False):
+    num_images = len(labels)  # Number of images to display
+    # fig, axes = plt.subplots(len(model_names) + 1, num_images, figsize=(num_images*3, (len(model_names) + 1)*3))  # Create a grid of subplots; figsize is columns, rows
+    fig = plt.figure(figsize=(num_images*2.5, (len(model_names) + 1)*2.5))  # Create a grid of subplots; figsize is columns, rows
+
+    gs = GridSpec(len(model_names) + 1, num_images, figure=fig, wspace=0.000, hspace=0.02)
+
+    outputs = [[i.cpu() for i in output] for output in outputs]
+    labels = [l.cpu() for l in labels]
+
+    if risk:
+        risk_cmap = LinearSegmentedColormap.from_list('custom_cmap', [(0, 'green'), (0.5, 'yellow'), (1, 'red')])
+
+    for i in range(num_images):
+        # Display true labels
+        # ax = axes[0, i]
+        ax = fig.add_subplot(gs[0, i])
+        ax.imshow(labels[i], cmap='gray', vmin=0, vmax=1)  # grayscale
+        ax.set_xticks([])
+        ax.set_yticks([])
+        if i == 0:
+            ax.set_ylabel('Ground Truth', rotation=90, size='large')
+            # ax.set_ylabel('Ground Truth', rotation=90, fontsize=10)
+            ax.yaxis.set_label_position("left")
+        if labels_flooded[i]:
+            ax.set_title('Flood')
+        else:
+            ax.set_title('No Flood')
+
+        # Display model outputs
+        for j in range(len(outputs)):
+            # ax = axes[j+1, i]
+            ax = fig.add_subplot(gs[j + 1, i])
+            if risk:
+                ax.imshow(labels[i], cmap=risk_cmap, vmin=0, vmax=1)
+            else:
+                ax.imshow(labels[i], cmap='gray', vmin=0, vmax=1)  # grayscale
+            ax.set_xticks([])
+            ax.set_yticks([])
+            if i == 0:
+                # ax.set_ylabel('Model Output', rotation=0, size='large', labelpad=40)
+                ax.set_ylabel(f"{model_names[j]} Output", rotation=90, size='large')
+                # ax.set_ylabel(f"{model_names[j]} Output", rotation=90, fontsize=10)
+                ax.yaxis.set_label_position("left")
+
+    # fig.tight_layout()
+    # fig.subplots_adjust(wspace=0.001)
+    plt.savefig(filename, bbox_inches='tight')
+    plt.close()
+
+
+def plot_metrics_vs_thresholds(metric_accumulators: list, filename: str, titles: list = None):
+    """
+    Plots Precision, Recall, Accuracy, and F1 Scores against Thresholds for a list of metric accumulators.
+
+    Parameters:
+    - metric_accumulators (list of dict): A list where each element is a metric_accumulator dictionary.
+    - titles (list of str, optional): A list of titles for each subplot. If not provided, subplots will be numbered.
+
+    """
+    
+    num_plots = len(metric_accumulators)
+    
+    # Create subplots
+    fig, axs = plt.subplots(1, num_plots, figsize=(15, 6), sharey=True)
+    
+    # If only one plot, convert axs to a list to maintain consistency
+    if num_plots == 1:
+        axs = [axs]
+
+    for i, metric_accumulator in enumerate(metric_accumulators):
+        # Extract thresholds, precision, recall, accuracy, and F1 scores from the metric_accumulator
+        thresholds = list(metric_accumulator['precision_scores'].keys())
+        precision_scores = list(metric_accumulator['precision_scores'].values())
+        recall_scores = list(metric_accumulator['recall_scores'].values())
+        accuracy_scores = list(metric_accumulator['accuracy_scores'].values())
+        f1_scores = list(metric_accumulator['f1_scores'].values())
+
+        axs[i].plot(thresholds, precision_scores, label='Precision')
+        axs[i].plot(thresholds, recall_scores, label='Recall')
+        axs[i].plot(thresholds, accuracy_scores, label='Accuracy')
+        axs[i].plot(thresholds, f1_scores, label='F1 Score')
+
+        if titles:
+            axs[i].set_title(titles[i])
+        axs[i].set_xlabel('Threshold')
+        if i == 0:  # Only set ylabel for the first subplot for clarity
+            axs[i].set_ylabel('Score')
+        
+        axs[i].legend()
+        axs[i].grid(True)
+
+    fig.suptitle("Performance Metrics by Threshold", fontsize=15, y=0.92)
+    plt.tight_layout()
+    plt.savefig(filename, bbox_inches='tight')
+    plt.show()
+
+
+def plot_roc_auc_curves(metric_accumulators: list, filename: str, titles: list = None):
+    """
+    Plots the ROC curve and calculates the AUC (Area Under the Curve) for each metric_accumulator in the list.
+
+    Parameters:
+    - metric_accumulators (list of dict): A list where each element is a metric_accumulator dictionary containing
+      'false_positive_rate' and 'recall_scores' (True Positive Rate).
+    - titles (list of str, optional): A list of titles for each subplot. If not provided, subplots will be numbered.
+
+    """
+    
+    num_plots = len(metric_accumulators)
+
+    fig, axs = plt.subplots(1, num_plots, figsize=(15, 6), sharey=True)
+    
+    # If only one plot, convert axs to a list to maintain consistency
+    if num_plots == 1:
+        axs = [axs]
+
+    for i, metric_accumulator in enumerate(metric_accumulators):
+        fpr = list(metric_accumulator['false_positive_rates'].values())
+        tpr = list(metric_accumulator['recall_scores'].values())
+        
+        roc_auc = auc(fpr, tpr) # Calculate AUC
+        
+        axs[i].plot(fpr, tpr, color='blue', lw=2, label=f'ROC curve (AUC = {roc_auc:.3f})')
+        axs[i].plot([0, 1], [0, 1], color='red', lw=2, linestyle='--', label='Random Classifier (AUC = 0.5)') # random classifier
+        
+        if titles:
+            axs[i].set_title(titles[i])
+        axs[i].set_xlabel('False Positive Rate (FPR)')
+        if i == 0:
+            axs[i].set_ylabel('True Positive Rate (TPR)')
+        
+        axs[i].legend(loc='lower right')
+        axs[i].grid(True)
+
+    fig.suptitle("ROC Curves", fontsize=15, y=0.92)
+    plt.tight_layout()
+    plt.savefig(filename, bbox_inches='tight')
+    plt.show()
