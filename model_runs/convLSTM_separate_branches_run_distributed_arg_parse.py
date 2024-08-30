@@ -100,23 +100,24 @@ if __name__ == "__main__":
                                     transform=None, batch_size=test_batch_size, shuffle=False, num_workers=4)
     
     # Train the model
-    torch.multiprocessing.spawn(train_model_dist, args=(world_size, os.environ['PROJECT_FLOOD_DATA'], 
-                                                        model, 
-                                                        criterion_str, 
-                                                        optimizer_str, 
-                                                        learning_rate, 
-                                                        num_epochs,
-                                                        True,
-                                                        True,
-                                                        train_batch_size,
-                                                        train_dataset,
-                                                        val_dataloader), nprocs=world_size)
-    
-    end_time = time.time()
-    elapsed_time = end_time - start_time
-    days = elapsed_time // (24 * 3600)
-    hours = (elapsed_time % (24 * 3600)) // 3600
-    minutes = (elapsed_time % 3600) // 60
-    seconds = elapsed_time % 60
-    print(f"{int(days)}-{int(hours):02}:{int(minutes):02}:{int(seconds):02}")
-    print("\n\n")
+    try:
+        torch.multiprocessing.spawn(train_model_dist, args=(world_size, os.environ['PROJECT_FLOOD_DATA'], 
+                                                            model, 
+                                                            criterion_str, 
+                                                            optimizer_str, 
+                                                            learning_rate, 
+                                                            num_epochs,
+                                                            True,
+                                                            True,
+                                                            train_batch_size,
+                                                            train_dataset,
+                                                            val_dataloader), nprocs=world_size)
+    finally:
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        days = elapsed_time // (24 * 3600)
+        hours = (elapsed_time % (24 * 3600)) // 3600
+        minutes = (elapsed_time % 3600) // 60
+        seconds = elapsed_time % 60
+        print(f"{int(days)}-{int(hours):02}:{int(minutes):02}:{int(seconds):02}")
+        print("\n\n")
