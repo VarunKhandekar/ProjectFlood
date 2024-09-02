@@ -1,4 +1,5 @@
 import datetime
+import time
 from evaluation.model_evaluation_helpers import *
 from model_runs.model_run_helpers import *
 from model_runs.distributed_gpu_helpers import *
@@ -27,8 +28,11 @@ if __name__=="__main__":
     # }
 
     # Load hyperparams for best models
-    _, _, _, best_sep_branch_params = load_checkpoint("...") #TODO ADD IN FILEPATHS
-    _, _, _, best_merged_params = load_checkpoint("...")
+    with open(os.environ["PROJECT_FLOOD_DATA"]) as data_config_file:
+        data_config = json.load(data_config_file)
+    #TODO ADD IN FILEPATHS
+    _, _, _, best_sep_branch_params = load_checkpoint(os.path.join(data_config['saved_models_path']), 'ConvLSTMSeparateBranches_epochs2000_batchsize8_lr0p001_precedingrainfall3_dropout0p25_outputchannels16_convblocklayers2_convLSTMlayers1_optimRMSprop_criterionBCELoss_transformsFalse_res256_20240830_1046_earlystop.pt')
+    _, _, _, best_merged_params = load_checkpoint(os.path.join(data_config['saved_models_path'], '...'))
 
 
     # Set up models
@@ -58,30 +62,50 @@ if __name__=="__main__":
 
         
     # Train merged and separate_branches
-    epochs = 2000 #Manually set as we have early stopping in place. What was previous optimal epochs might be different
-
-    torch.multiprocessing.spawn(train_model_dist, args=(world_size, os.environ['PROJECT_FLOOD_DATA'], 
-                                                        sep_branch_model, 
-                                                        best_sep_branch_params['criterion'], 
-                                                        best_sep_branch_params['optim'], 
-                                                        best_sep_branch_params['lr'], 
-                                                        best_sep_branch_params['epochs'],
-                                                        False,
-                                                        False,
-                                                        best_sep_branch_params['batchsize'],
-                                                        train_dataset_sep_branch,
-                                                        True), nprocs=world_size)
+    epochs = 3000 #Manually set as we have early stopping in place. What was previous optimal epochs might be different
+    try:
+        start_time = time.time()
+        torch.multiprocessing.spawn(train_model_dist, args=(world_size, os.environ['PROJECT_FLOOD_DATA'], 
+                                                            sep_branch_model, 
+                                                            best_sep_branch_params['criterion'], 
+                                                            best_sep_branch_params['optim'], 
+                                                            best_sep_branch_params['lr'], 
+                                                            best_sep_branch_params['epochs'],
+                                                            False,
+                                                            False,
+                                                            best_sep_branch_params['batchsize'],
+                                                            train_dataset_sep_branch,
+                                                            True), nprocs=world_size)
+    finally:
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        days = elapsed_time // (24 * 3600)
+        hours = (elapsed_time % (24 * 3600)) // 3600
+        minutes = (elapsed_time % 3600) // 60
+        seconds = elapsed_time % 60
+        print("Branched model took ", f"{int(days)}-{int(hours):02}:{int(minutes):02}:{int(seconds):02}")
+        print("\n\n")
 
     # Train the model
-    torch.multiprocessing.spawn(train_model_dist, args=(world_size, os.environ['PROJECT_FLOOD_DATA'], 
-                                                        merged_model, 
-                                                        best_merged_params['criterion'], 
-                                                        best_merged_params['optim'], 
-                                                        best_merged_params['lr'], 
-                                                        best_merged_params['epochs'],
-                                                        False,
-                                                        False,
-                                                        best_merged_params['batchsize'],
-                                                        train_dataset_merged,
-                                                        True), nprocs=world_size)
-
+    try:
+        start_time = time.time()
+        torch.multiprocessing.spawn(train_model_dist, args=(world_size, os.environ['PROJECT_FLOOD_DATA'], 
+                                                            merged_model, 
+                                                            best_merged_params['criterion'], 
+                                                            best_merged_params['optim'], 
+                                                            best_merged_params['lr'], 
+                                                            best_merged_params['epochs'],
+                                                            False,
+                                                            False,
+                                                            best_merged_params['batchsize'],
+                                                            train_dataset_merged,
+                                                            True), nprocs=world_size)
+    finally:
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        days = elapsed_time // (24 * 3600)
+        hours = (elapsed_time % (24 * 3600)) // 3600
+        minutes = (elapsed_time % 3600) // 60
+        seconds = elapsed_time % 60
+        print("Merged models took ", f"{int(days)}-{int(hours):02}:{int(minutes):02}:{int(seconds):02}")
+        print("\n\n")
