@@ -31,8 +31,8 @@ if __name__=="__main__":
     with open(os.environ["PROJECT_FLOOD_DATA"]) as data_config_file:
         data_config = json.load(data_config_file)
     #TODO ADD IN FILEPATHS
-    _, _, _, best_sep_branch_params = load_checkpoint(os.path.join(data_config['saved_models_path']), 'ConvLSTMSeparateBranches_epochs2000_batchsize8_lr0p001_precedingrainfall3_dropout0p25_outputchannels16_convblocklayers2_convLSTMlayers1_optimRMSprop_criterionBCELoss_transformsFalse_res256_20240830_1046_earlystop.pt')
-    _, _, _, best_merged_params = load_checkpoint(os.path.join(data_config['saved_models_path'], '...'))
+    _, _, early_stopping_sep_branch_epoch, best_sep_branch_params = load_checkpoint(os.path.join(data_config['saved_models_path'], 'ConvLSTMSeparateBranches_epochs2000_batchsize8_lr0p001_precedingrainfall3_dropout0p25_outputchannels16_convblocklayers2_convLSTMlayers1_optimRMSprop_criterionBCELoss_transformsFalse_res256_20240830_1046_earlystop.pt'))
+    _, _, early_stopping_merged_epoch, best_merged_params = load_checkpoint(os.path.join(data_config['saved_models_path'], 'ConvLSTMMerged_epochs2000_batchsize8_lr0p001_precedingrainfall1_dropout0p25_outputchannels16_convblocklayers2_convLSTMlayers2_optimRMSprop_criterionBCELoss_transformsFalse_res256_20240901_1066_earlystop.pt'))
 
 
     # Set up models
@@ -70,11 +70,13 @@ if __name__=="__main__":
                                                             best_sep_branch_params['criterion'], 
                                                             best_sep_branch_params['optim'], 
                                                             best_sep_branch_params['lr'], 
-                                                            best_sep_branch_params['epochs'],
+                                                            # 971,
+                                                            early_stopping_sep_branch_epoch,
                                                             False,
                                                             False,
                                                             best_sep_branch_params['batchsize'],
                                                             train_dataset_sep_branch,
+                                                            None,
                                                             True), nprocs=world_size)
     finally:
         end_time = time.time()
@@ -94,11 +96,13 @@ if __name__=="__main__":
                                                             best_merged_params['criterion'], 
                                                             best_merged_params['optim'], 
                                                             best_merged_params['lr'], 
-                                                            best_merged_params['epochs'],
+                                                            # 991,
+                                                            early_stopping_merged_epoch,
                                                             False,
                                                             False,
                                                             best_merged_params['batchsize'],
                                                             train_dataset_merged,
+                                                            None,
                                                             True), nprocs=world_size)
     finally:
         end_time = time.time()
