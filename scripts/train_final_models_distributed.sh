@@ -3,7 +3,7 @@
 #SBATCH --mail-type=ALL # required to send email notifcations
 #SBATCH --mail-user=vk223
 #SBATCH --partition gpgpuC --gres=gpu:2
-#SBATCH --output=convLSTM_separate_branches_%j.out
+#SBATCH --output=convLSTM_final_train_%j.out
 
 export PROJECT_FLOOD_DATA="/homes/vk223/ProjectFlood/static/imperial_data_paths.json"
 export PROJECT_FLOOD_CORE_PATHS="/homes/vk223/ProjectFlood/static/imperial_core_paths.json"
@@ -11,7 +11,7 @@ export PROJECT_FLOOD_REPO_DIR="/homes/vk223/ProjectFlood"
 source /vol/bitbucket/vk223/project_flood/projectfloodvenv/bin/activate
 source /vol/cuda/11.8.0/setup.sh
 export PYTHONPATH=$PYTHONPATH:${PROJECT_FLOOD_REPO_DIR}/
-export PROJECT_FLOOD_SCRIPTPATH=final_evaluation/train_final_models.py
+export PROJECT_FLOOD_SCRIPTPATH=evaluation/train_final_models.py
 export PROJECT_FLOOD_SCRIPTLOC=${PROJECT_FLOOD_REPO_DIR}/${PROJECT_FLOOD_SCRIPTPATH}
 TERM=vt100 
 #TERM=xterm

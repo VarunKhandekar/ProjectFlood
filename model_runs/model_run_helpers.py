@@ -98,17 +98,17 @@ def train_model(data_config_path: str, model,  criterion_type: str, optimizer_ty
                 print("Final LR:", optimizer.param_groups[0]['lr'])
                 save_checkpoint(model, optimizer, epoch, os.path.join(data_config["saved_models_path"], f"{model.name}_{epoch}_earlystop.pt"), hyperparams)
                 print(f'Early stopping triggered after {epoch} epochs')
+                print("Best epoch:", best_epoch, "; Lowest validation loss:", best_val_loss)
                 break
 
-        if epoch % 100 == 0:
-            print(f"Epoch {epoch}/{num_epochs}, Loss: {loss.item():.4f}, Val Loss: {validation_epoch_average_loss:.4f}, LR: {optimizer.param_groups[0]['lr']}")
+            if epoch % 100 == 0:
+                print(f"Epoch {epoch}/{num_epochs}, Loss: {loss.item():.4f}, Val Loss: {validation_epoch_average_loss:.4f}, LR: {optimizer.param_groups[0]['lr']}")
 
         # Save model snapshot
         if epoch % 1000 == 0:
             save_checkpoint(model, optimizer, epoch, os.path.join(data_config["saved_models_path"], f"{model.name}_{epoch}.pt"), hyperparams)
     
     # Save end model
-    print("Best epoch:", best_epoch, "; Lowest validation loss:", best_val_loss)
     print("Final LR:", optimizer.param_groups[0]['lr'])
     if is_final:
         save_checkpoint(model, optimizer, epoch, os.path.join(data_config["saved_models_path"], f"{model.name}_{epoch}_FINAL.pt"), hyperparams)
