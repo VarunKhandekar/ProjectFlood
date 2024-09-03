@@ -4,22 +4,19 @@ from model_runs.distributed_gpu_helpers import *
 from visualisations.visualisation_helpers import *
 
 if __name__=="__main__":
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = 'cpu'
     torch.manual_seed(42)
     resolution = 256
+    # Set up config files
+    with open(os.environ["PROJECT_FLOOD_CORE_PATHS"]) as core_config_file:
+        core_config = json.load(core_config_file)
+    with open(os.environ["PROJECT_FLOOD_DATA"]) as data_config_file:
+        data_config = json.load(data_config_file)
+
     # Load newly trained best, final models
-    final_sep_branch_model, _, _, final_sep_branch_params = load_checkpoint("...") #TODO FILL IN FILEPATHS
-    final_merged_model, _, _, final_merged_params = load_checkpoint("...")
-
-
-    # with open(os.environ["PROJECT_FLOOD_DATA"]) as data_config_file:
-    #     data_config = json.load(data_config_file)
-        
-    # final_sep_branch_fp = os.path.join(data_config["saved_models_path"], f"{get_attribute(sep_branch_model, 'name')}_{best_sep_branch_params['epochs']}_FINAL.pt")
-    # final_merged_fp = os.path.join(data_config["saved_models_path"], f"{get_attribute(merged_model, 'name')}_{best_merged_params['epochs']}_FINAL.pt")
-
-    # final_sep_branch_model, _, _, final_sep_branch_params = load_checkpoint(final_sep_branch_fp)
-    # final_merged_branch_model_, _, _, final_merged_params = load_checkpoint(final_merged_fp)
+    final_sep_branch_model, _, _, final_sep_branch_params = load_checkpoint(os.path.join(data_config['saved_models_path'], 'ConvLSTMSeparateBranches_epochs2000_batchsize8_lr0p001_precedingrainfall3_dropout0p25_outputchannels16_convblocklayers2_convLSTMlayers1_optimRMSprop_criterionBCELoss_transformsFalse_res256_20240830_1046_earlystop.pt')) #TODO FILL IN FILEPATHS
+    final_merged_model, _, _, final_merged_params = load_checkpoint(os.path.join(data_config['saved_models_path'], 'ConvLSTMMerged_epochs2000_batchsize8_lr0p001_precedingrainfall1_dropout0p25_outputchannels16_convblocklayers2_convLSTMlayers2_optimRMSprop_criterionBCELoss_transformsFalse_res256_20240901_1066_earlystop.pt'))
 
     # Set up test_dataloaders
     sep_branch_test_dataloader = get_dataloader("test_labels_path", resolution=256, preceding_rainfall_days=final_sep_branch_params['precedingrainfall'], forecast_rainfall_days=1, 
@@ -28,12 +25,6 @@ if __name__=="__main__":
     merged_test_dataloader = get_dataloader("test_labels_path", resolution=256, preceding_rainfall_days=final_merged_params['precedingrainfall'], forecast_rainfall_days=1, 
                                                 transform=None, batch_size=16, shuffle=False, num_workers=4)
     
-    # Set up config files
-    with open(os.environ["PROJECT_FLOOD_CORE_PATHS"]) as core_config_file:
-        core_config = json.load(core_config_file)
-    with open(os.environ["PROJECT_FLOOD_DATA"]) as data_config_file:
-        data_config = json.load(data_config_file)
-
     # Get cropping dimensions
     dimension_string = core_config[f"rainfall_reprojection_master_{resolution}"]
     match = re.search(r'_(\d+)_(\d+)\.tif$', dimension_string)
@@ -45,10 +36,10 @@ if __name__=="__main__":
 
     # Calculate loss metrics, one epoch
     print("========= SEPARATE BRANCH ==============")
-    sep_branch_metrics = evaluate_model(final_sep_branch_model, sep_branch_test_dataloader, final_sep_branch_params['criterion'], device, new_dimension_right, new_dimension_bottom)
+    sep_branch_metrics = evaluate_model(final_sep_branch_model, sep_branch_test_dataloader, final_sep_branch_params['criterion'], device, mask_path, new_dimension_right, new_dimension_bottom)
     print("\n\n")
     print("========= MERGED BRANCH ==============")
-    merged_metrics = evaluate_model(final_merged_model, merged_test_dataloader, final_sep_branch_params['criterion'], device, new_dimension_right, new_dimension_bottom)
+    merged_metrics = evaluate_model(final_merged_model, merged_test_dataloader, final_sep_branch_params['criterion'], device, mask_path, new_dimension_right, new_dimension_bottom)
     print("\n\n")
 
     # Plot loss metrics by threshold
@@ -62,9 +53,8 @@ if __name__=="__main__":
     plot_roc_auc_curves(metric_combo, roc_filename, titles)
 
     # Save image wide metrics
-    metrics_filename = os.path.join(data_config["model_results_path"], f"key_metrics_{resolution}.png")
+    metrics_filename = os.path.join(data_config["model_results_path"], f"key_metrics_{resolution}.csv")
     save_metrics_to_csv(metric_combo, metrics_filename, titles)
-
 
     # Plot test images for each model
     with torch.no_grad():
@@ -104,4 +94,3 @@ if __name__=="__main__":
         for i in range(len(model_names)):
             plot_filename = os.path.join(data_config["model_results_path"], f"final_plots_{model_names[i]}_pixel_difference.png")
             plot_pixel_difference(model_names[i], selected_model_outputs[i], selected_targets, selected_targets_flooded, plot_filename)
-

@@ -208,16 +208,16 @@ def evaluate_model(model, test_dataloader, criterion_str: str, device, mask_path
     metric_accumulator['f1_scores'] = f1_scores
     metric_accumulator['false_positive_rates'] = false_positive_rates
 
-    print('Accuracy scores:',  metric_accumulator['accuracy_scores'])
-    print('Precision scores:',  metric_accumulator['precision_scores'])
-    print('Recall scores:',  metric_accumulator['recall_scores'])
-    print('F1 scores:',  metric_accumulator['f1_scores'])
-    print('False Positive scores:',  metric_accumulator['false_positive_rates'])
+    # print('Accuracy scores:',  metric_accumulator['accuracy_scores'])
+    # print('Precision scores:',  metric_accumulator['precision_scores'])
+    # print('Recall scores:',  metric_accumulator['recall_scores'])
+    # print('F1 scores:',  metric_accumulator['f1_scores'])
+    # print('False Positive scores:',  metric_accumulator['false_positive_rates'])
 
     return metric_accumulator
 
 
-def save_metrics_to_csv(metric_accumulators: list, model_names: list, filename: str):
+def save_metrics_to_csv(metric_accumulators: list, filename: str, model_names: list):
     data = {}
     for metric_accumulator in metric_accumulators:
         for key, value in metric_accumulator.items():
