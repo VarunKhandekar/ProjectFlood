@@ -165,12 +165,12 @@ cython_debug/
 data/
 static/
 other/
-scripts/archive/
+# scripts/archive/
 # data_extraction/ee_test.ipynb
 gpu_availability.py
-requirements.txt
+# requirements.txt
 data_extraction/data_cut.py
-archive/
+# archive/
 models/saved_models/
 model_runs/model_runs_log.xlsx
 models/experimenting/
