@@ -162,6 +162,7 @@ cython_debug/
 #.idea/
 
 # Folders and files
+.vscode/
 data/
 static/
 other/
