@@ -141,13 +141,19 @@ def strip_black_pixel_padding_PIL(config_file_path: str, resolution: int, image_
     return cropped_image
 
 
-def plot_pixel_difference(model_name, outputs, labels, labels_flooded, filename):
+def plot_pixel_difference(model_name, outputs, labels, labels_flooded, filename, threshold=0.5):
     if isinstance(outputs[0], torch.Tensor):
         outputs = [i.cpu().numpy() for i in outputs] 
     if isinstance(labels[0], torch.Tensor):
         labels = [l.cpu().numpy() for l in labels]
 
-    difference_cmap = mcolors.LinearSegmentedColormap.from_list("", ["white", "red"])
+    difference_cmap = mcolors.LinearSegmentedColormap.from_list("", ["white", "red"], gamma=2)
+    # difference_cmap = mcolors.LinearSegmentedColormap.from_list("",  [
+    #     (0.0, "white"),  # 0% at white
+    #     (0.3**2, "white"),  # ~9% still white (adjust the exponent for the effect)
+    #     (0.6**2, "pink"),  # ~36% pinkish
+    #     (1.0, "red"),    # 100% at red
+    # ])
 
     # Create a grid of subplots; figsize is columns, rows
     x, y = labels[0].shape
@@ -182,7 +188,9 @@ def plot_pixel_difference(model_name, outputs, labels, labels_flooded, filename)
         ax = axes[i, 2]
         ax.set_xticks([])
         ax.set_yticks([])
+        # thresholded_output = outputs[i] > threshold
         absolute_pixel_difference = np.abs(outputs[i] - labels[i])
+        # absolute_pixel_difference = np.abs(thresholded_output - labels[i])
         ax.imshow(absolute_pixel_difference, cmap=difference_cmap, vmin=0, vmax=1)
         if i == 0:
             ax.set_title('Difference')
@@ -378,7 +386,7 @@ def plot_metrics_vs_thresholds(metric_accumulators: list, filename: str, titles:
         axs[i].legend()
         axs[i].grid(True)
 
-    fig.suptitle("Performance Metrics by Threshold", fontsize=15, y=0.92)
+    fig.suptitle("Performance Metrics by Threshold", fontsize=15, y=0.97)
     plt.tight_layout()
     plt.savefig(filename, bbox_inches='tight')
     plt.show()
@@ -421,7 +429,7 @@ def plot_roc_auc_curves(metric_accumulators: list, filename: str, titles: list =
         axs[i].legend(loc='lower right')
         axs[i].grid(True)
 
-    fig.suptitle("ROC Curves", fontsize=15, y=0.92)
+    fig.suptitle("ROC Curves", fontsize=15, y=0.97)
     plt.tight_layout()
     plt.savefig(filename, bbox_inches='tight')
     plt.show()
