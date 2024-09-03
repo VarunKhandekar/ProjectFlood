@@ -172,3 +172,4 @@ requirements.txt
 data_extraction/data_cut.py
 archive/
 models/saved_models
+model_runs/model_runs_log.xlsx
