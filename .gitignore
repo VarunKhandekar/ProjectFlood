@@ -170,7 +170,7 @@ other/
 gpu_availability.py
 # requirements.txt
 data_extraction/data_cut.py
-# archive/
+archive/
 models/saved_models/
 model_runs/model_runs_log.xlsx
 models/experimenting/
