@@ -166,17 +166,16 @@ data/
 static/
 other/
 # scripts/archive/
-# data_extraction/ee_test.ipynb
 gpu_availability.py
 # requirements.txt
 data_extraction/data_cut.py
 archive/
-models/saved_models/
+models/saved_models
 model_runs/model_runs_log.xlsx
-models/experimenting/
-data_extraction/experimenting/
-evaluation/experimenting/
-dataloaders/experimenting/
-model_runs/experimenting/
-visualisations/experimenting/
-visualisations/loss_charts/archive/
+models/experimenting
+data_extraction/experimenting
+evaluation/experimenting
+dataloaders/experimenting
+model_runs/experimenting
+visualisations/experimenting
+visualisations/loss_charts/archive
