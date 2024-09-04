@@ -1,6 +1,13 @@
 # ProjectFlood
 
-This project looks at predicting flood risk on a pixel-by-pixel basis. It primarily uses ConvLSTM architectures, making use of satellite and renalysis data sets, and focuses on Bangladesh.
+This project looks at predicting flood risk on a pixel-by-pixel basis. It primarily uses ConvLSTM architectures, making use of satellite and renalysis data sets, and focuses on Bangladesh. Images were roughly at a 2km resolution.
+
+This project was a Masters thesis submission.
+
+## Table of Contents
+- [Usage](#usage)
+- [Model Architectures](#model-architectures)
+- [Example Model Outputs](#example-model-outputs)
 
 ## Usage
 
@@ -14,10 +21,25 @@ The project requires the user to set up appropriate environment variables that m
 - The **visualisations** folder contains plotting helpers to visualise model outputs and explore the datasets used
 - The **evaluation** folder has scripts used to evaluate model performance. It also contains a script to find pixels which are permanently water across all flood and non-flood images, used when evaluating performance.
 
-## Example model outputs
-Pixel differences:
-![Screenshot](https://imgur.com/BHTRq6c)
+## Model Architectures
+**Branched approach:**
 
-https://imgur.com/2FmY8UI
+<img src="./example_images/branched_approach.png" alt="Branched approach" width="500"/>
+
+**Merged approach:**
+
+<img src="./example_images/merged_approach.png" alt="Merged approach" width="500"/>
 
 
+## Example Model Outputs
+**Model outputs:**
+
+![Model Outputs](./example_images/final_plots.png)
+
+**Pixel differences:**
+
+![Pixel Differences](./example_images/final_plots_Merged_pixel_difference.png)
+
+**Example risk map:**
+
+![Risk Map](./example_images/final_plots_risk.png)
