@@ -35,7 +35,18 @@ def generate_country_outline(shapefile_path: str) -> Polygon:
     return Polygon(polygon_coordinates[0][0])
 
 
-def generate_square_coordinates_from_polygon(polygon: Polygon):
+def generate_square_coordinates_from_polygon(polygon: Polygon) -> tuple:
+    """
+    Generate a square bounding box around a given polygon by expanding the smaller dimension to match the larger one.
+
+    Args:
+        polygon (Polygon): A shapely Polygon object representing the input polygon.
+
+    Returns:
+        tuple: A tuple of four float values representing the coordinates of the square bounding box:
+            (new_min_lon, new_min_lat, new_max_lon, new_max_lat).
+
+    """
     min_lon, min_lat, max_lon, max_lat = polygon.bounds
     width = max_lon - min_lon
     height = max_lat - min_lat
@@ -132,7 +143,7 @@ def generate_random_non_flood_dates(core_config_path: str, num_dates: int, safet
     return random_dates
 
 
-def remove_metadata(image_path: str):
+def remove_metadata(image_path: str) -> None:
     """
     Remove metadata from an image.
 
@@ -166,7 +177,20 @@ def pad_to_square(image: Image, desired_resolution: int) -> Image:
     return padded_image
 
 
-def resize_and_pad_with_PIL(file_path: str, core_config_path: str, desired_resolution: int, target_file_path: str):
+def resize_and_pad_with_PIL(file_path: str, core_config_path: str, desired_resolution: int, target_file_path: str) -> None:
+    """
+    Resize and pad an image using the Python Imaging Library (PIL), and save the processed image to a specified target path.
+
+    Args:
+        file_path (str): Path to the input image file to be resized and padded.
+        core_config_path (str): Path to the core configuration JSON file containing the paths for reference images.
+        desired_resolution (int): Desired resolution for padding the image.
+        target_file_path (str): Path to save the resized and padded image.
+
+    Returns:
+        None
+
+    """
     with open(core_config_path) as core_config_file:
         core_config = json.load(core_config_file)
     target_image_file_path = core_config[f'rainfall_reprojection_master_{desired_resolution}']

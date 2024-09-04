@@ -4,11 +4,12 @@ from pydrive.drive import GoogleDrive
 import os
 import xarray as xr
 from shapely.geometry import Polygon, mapping
+import affine
 import rasterio
 from rasterio.transform import from_origin
 from rasterio.warp import reproject, Resampling
 import numpy as np
-from PIL import Image
+# from PIL import Image
 from generic_helpers import *
 
 def convert_date_to_MSWEP_file_name(timestamp: pd.Timestamp) -> str:
@@ -147,8 +148,20 @@ def reproject_and_upsample_rasterio(input_file: str,
 
 #     return output_file
 
-def get_transform_from_xarray(data_array):
-    # Assuming the coordinates are named 'lon' and 'lat' and are regularly spaced
+def get_transform_from_xarray(data_array: xr.DataArray) -> affine.Affine:
+    """
+    Generate an affine transformation matrix from the coordinates of an xarray DataArray, assuming regularly spaced longitude and latitude values.
+
+    Args:
+        data_array (xr.DataArray): Input DataArray containing 'lon' (longitude) and 'lat' (latitude) coordinates.
+
+    Returns:
+        affine.Affine: Affine transformation matrix representing the geospatial relationship between the data and its coordinates.
+
+    Raises:
+        KeyError: If the DataArray does not contain 'lon' or 'lat' coordinates.
+        IndexError: If the 'lon' or 'lat' coordinates have insufficient data points to compute resolution.
+    """
     lon_res = data_array.lon[1] - data_array.lon[0]  # Longitude resolution
     lat_res = data_array.lat[1] - data_array.lat[0]  # Latitude resolution
     transform = from_origin(data_array.lon.min(), data_array.lat.max(), lon_res, abs(lat_res))

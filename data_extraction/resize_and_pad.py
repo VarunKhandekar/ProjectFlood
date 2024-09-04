@@ -2,6 +2,7 @@ import os
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
 from shapely.geometry import box
+from typing import Callable, Any
 import pandas as pd
 import shutil
 import time
@@ -10,7 +11,23 @@ from data_extraction.generic_helpers import *
 from data_extraction.rainfall_helpers import *
 
 
-def retry_function(func, args, kwargs, retries=3, delay=5):
+def retry_function(func: Callable, args: tuple, kwargs: dict, retries: int = 3, delay: int = 5) -> Any:
+    """
+    Retry a function multiple times with a delay between attempts in case of failure.
+
+    Args:
+        func (Callable): The function to be executed.
+        args (tuple): Positional arguments to pass to the function.
+        kwargs (dict): Keyword arguments to pass to the function.
+        retries (int, optional): Number of retry attempts. Default is 3.
+        delay (int, optional): Delay in seconds between retry attempts. Default is 5.
+
+    Returns:
+        Any: The result of the function if successful within the allowed retries.
+
+    Raises:
+        Exception: Re-raises the last encountered exception if the function fails after all retries.
+    """
     for attempt in range(retries):
         try:
             return func(*args, **kwargs)
@@ -24,7 +41,18 @@ def retry_function(func, args, kwargs, retries=3, delay=5):
                 raise
 
 
-def generate_new_master(core_config_path: str, target_resolution: int):
+def generate_new_master(core_config_path: str, target_resolution: int) -> None:
+    """
+    Generate a new resized master image at the specified resolution and update the configuration file.
+
+    Args:
+        core_config_path (str): Path to the core configuration JSON file containing paths for rainfall images.
+        target_resolution (int): Target resolution (height or width) for resizing the image, depending on the aspect ratio.
+
+    Returns:
+        None: The function resizes the original image to the target resolution, saves the new image, and updates the configuration file.
+
+    """
     with open(core_config_path) as core_config_file:
         core_config = json.load(core_config_file)
     start_res_path = core_config[f'rainfall_reprojection_master_high_res']

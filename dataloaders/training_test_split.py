@@ -46,6 +46,7 @@ def split_training_test(data_config_path: str, resolution: int, flood_dates_file
 
     Returns:
         tuple: Three lists representing the training, validation, and test sets.
+
     """
     assert val_ratio + test_ratio <= 0.5, "Validation and test ratios combined should not exceed 0.5"  
 
@@ -78,7 +79,7 @@ def split_training_test(data_config_path: str, resolution: int, flood_dates_file
     return train_files, val_files, test_files
 
 
-def save_files(data_config_path: str, resolution: int, files: list, dataset_type: Literal['training', 'validation', 'test']):
+def save_files(data_config_path: str, resolution: int, files: list, dataset_type: Literal['training', 'validation', 'test']) -> None:
     """
     Save files to their respective directories for training, validation, or testing.
 
@@ -88,8 +89,9 @@ def save_files(data_config_path: str, resolution: int, files: list, dataset_type
         files (list): List of files to be saved.
         dataset_type (str): Type of dataset to save the files to. Must be one of 'training', 'validation', or 'test'.
 
-    Raises:
-        ValueError: If an invalid dataset type is provided.
+    Returns:
+        None
+
     """
     dataset_types = ['training', 'validation', 'test']
     if dataset_type not in dataset_types:
@@ -119,7 +121,18 @@ def save_files(data_config_path: str, resolution: int, files: list, dataset_type
         shutil.copy(source, destination)
 
 
-def combine_training_and_validation(data_config_path: str, resolution: int):
+def combine_training_and_validation(data_config_path: str, resolution: int) -> None:
+    """
+    Combine training and validation label images into a single directory, overwriting the target directory if it already exists.
+
+    Args:
+        data_config_path (str): Path to the configuration file containing directory paths for training, validation, and combined data.
+        resolution (int): The resolution of the images being combined, used to determine the source and target directories.
+
+    Returns:
+        None: The function copies all training and validation label images into a newly created combined directory.
+
+    """
     with open(data_config_path) as data_config_file:
         data_config = json.load(data_config_file)
     target_directory = f"{data_config['training_validation_combo_path']}_{resolution}_{resolution}"

@@ -4,7 +4,24 @@ import subprocess
 from data_extraction.generic_helpers import *
 from data_extraction.rainfall_helpers import *
 
-def check_relevant_files_exist(core_config_path: str, data_config_path: str, days_before: int, days_after: int, freq: str):
+def check_relevant_files_exist(core_config_path: str, data_config_path: str, days_before: int, days_after: int, freq: str) -> tuple:
+    """
+    Check if all relevant rainfall and soil moisture files exist for flood and non-flood images, and return missing files and rerun dates.
+
+    Args:
+        core_config_path (str): Path to the core configuration JSON file containing cleanup script information.
+        data_config_path (str): Path to the data configuration JSON file containing file paths for flood, non-flood, rainfall, and soil moisture images.
+        days_before (int): Number of days before the image date for which rainfall data needs to be checked.
+        days_after (int): Number of days after the image date for which rainfall data needs to be checked.
+        freq (str): Frequency for generating the list of timestamps for rainfall data.
+
+    Returns:
+        tuple: A tuple containing three elements:
+            - missing_rainfall_images (list): List of rainfall image file names that are missing.
+            - missing_soil_moisture_images (list): List of soil moisture image file names that are missing.
+            - rerun_dates (list): List of dates that need to be rerun based on missing images.
+
+    """
     # Call script to ensure folders are cleaned up
     with open(core_config_path) as core_config_file:
         core_config = json.load(core_config_file)

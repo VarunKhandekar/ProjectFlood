@@ -9,7 +9,25 @@ from data_extraction.flood_image_helpers import *
 from data_extraction.soil_moisture_helpers import *
 from data_extraction.rainfall_helpers import * 
 
-def process_flood_event(date, events, rainfall_days_before: int, rainfall_days_after: int, main_region_shape: ee.geometry.Geometry, rain_shape: Polygon, soil_moisture_shape: ee.geometry.Geometry, crs_transform_list):
+def process_flood_event(date: pd.Timestamp, events: list, rainfall_days_before: int, rainfall_days_after: int, 
+                        main_region_shape: ee.geometry.Geometry, rain_shape: Polygon, soil_moisture_shape: ee.geometry.Geometry, crs_transform_list: list) -> None:
+    """
+    Gather flood, soil moisture, and rainfall data, for a list of overlapping flood events. Export the results to Google Drive.
+
+    Args:
+        date (datetime-like): The date of the flood event.
+        events (list): List of event IDs to retrieve flood images from the Global Flood Database.
+        rainfall_days_before (int): Number of days before the flood event to include in the rainfall data.
+        rainfall_days_after (int): Number of days after the flood event to include in the rainfall data.
+        main_region_shape (ee.geometry.Geometry): Geometry for the region of interest to extract flood images.
+        rain_shape (Polygon): The polygon shape for cropping the rainfall data.
+        soil_moisture_shape (ee.geometry.Geometry): Geometry for the region to extract soil moisture data.
+        crs_transform_list (list): Coordinate reference system (CRS) transform parameters for geospatial data.
+    
+    Returns:
+        None
+
+    """
     print("Running for flood event: ", date)
     gfd = ee.ImageCollection('GLOBAL_FLOOD_DB/MODIS_EVENTS/V1')
     perm_water = ee.ImageCollection('JRC/GSW1_4/MonthlyRecurrence')
@@ -100,7 +118,24 @@ def process_flood_event(date, events, rainfall_days_before: int, rainfall_days_a
 
 
 
-def process_non_flood_event(date, rainfall_days_before: int, rainfall_days_after: int, main_region_shape, rain_shape, soil_moisture_shape, crs_transform_list):
+def process_non_flood_event(date: pd.Timestamp, rainfall_days_before: int, rainfall_days_after: int, 
+                            main_region_shape: ee.geometry.Geometry, rain_shape: Polygon, soil_moisture_shape: ee.geometry.Geometry, crs_transform_list: list) -> None:
+    """
+    Process a non-flood event by retrieving water, soil moisture, and rainfall data. Export the results to Google Drive.
+
+    Args:
+        date (pd.Timestamp): The date of the non-flood event.
+        rainfall_days_before (int): Number of days before the event to include in the rainfall data.
+        rainfall_days_after (int): Number of days after the event to include in the rainfall data.
+        main_region_shape (ee.geometry.Geometry): Geometry for the region of interest to extract water images.
+        rain_shape (Polygon): The polygon shape for cropping the rainfall data.
+        soil_moisture_shape (ee.geometry.Geometry): Geometry for the region to extract soil moisture data.
+        crs_transform_list (list): Coordinate reference system (CRS) transform parameters for geospatial data.
+    
+    Returns:
+        None
+
+    """
     print("Running for non-flood event: ", date)
     perm_water = ee.ImageCollection('JRC/GSW1_4/MonthlyRecurrence')
 
@@ -185,8 +220,6 @@ def process_non_flood_event(date, rainfall_days_before: int, rainfall_days_after
         send_to_google_drive(drive, rainfall_file, os.environ["PROJECT_FLOOD_CORE_PATHS"], 'bangladesh_rainfall_folder_id', overwrite=True)
 
 
-
-
 if __name__=="__main__":
     # Suppress warnings about 'cfgrib' engine loading failure
     warnings.filterwarnings("ignore", message=".*Engine 'cfgrib' loading failed.*")
@@ -232,52 +265,51 @@ if __name__=="__main__":
     # Max number of processes allowed to run
     max_workers = 6
 
-    # TOPOLOGY DATA
-    # topology = ee.Image("NASA/NASADEM_HGT/001").select("elevation")
+    # TOPOGRAPHY DATA
+    topography = ee.Image("NASA/NASADEM_HGT/001").select("elevation")
 
-    # # Replace all no data values with 0 (essentially the sea)
-    # topology = topology.unmask(0)
+    # Replace all no data values with 0 (essentially the sea)
+    topography = topography.unmask(0)
 
-    # export_task = ee.batch.Export.image.toDrive(
-    #     image=topology,
-    #     description='BangladeshTopology',
-    #     folder='Topology',
-    #     fileNamePrefix='BangladeshTopology',
-    #     region=bangladesh_bounding_box_ee,
-    #     crs='EPSG:4326',
-    #     # scale=250,  # Adjust the scale as needed
-    #     crsTransform=crs_transform_list_high_res,
-    #     maxPixels=1e13  # Adjust maxPixels as needed
-    # )
-    # export_task.start()
-    # time.sleep(10)
+    export_task = ee.batch.Export.image.toDrive(
+        image=topography,
+        description='BangladeshTopography',
+        folder='Topography',
+        fileNamePrefix='BangladeshTopography',
+        region=bangladesh_bounding_box_ee,
+        crs='EPSG:4326',
+        # scale=250,  # Adjust the scale as needed
+        crsTransform=crs_transform_list_high_res,
+        maxPixels=1e13  # Adjust maxPixels as needed
+    )
+    export_task.start()
+    time.sleep(10)
 
     # FLOOD EVENTS
-    # refined_flood_events = generate_flood_events(os.environ["PROJECT_FLOOD_CORE_PATHS"])
-    # store_flood_dates(refined_flood_events) #Save list of flood dates under consideration
+    refined_flood_events = generate_flood_events(os.environ["PROJECT_FLOOD_CORE_PATHS"])
+    store_flood_dates(refined_flood_events) #Save list of flood dates under consideration
  
-    # # Submit jobs, process pool to avoid memory issues
-    # with ProcessPoolExecutor(max_workers=max_workers) as executor:
-    #     futures = [executor.submit(process_flood_event, date, events, rainfall_days_before, rainfall_days_after, main_region_shape, rain_shape, soil_moisture_shape) for date, events in refined_flood_events.items()]
+    # Submit jobs, process pool to avoid memory issues
+    with ProcessPoolExecutor(max_workers=max_workers) as executor:
+        futures = [executor.submit(process_flood_event, date, events, rainfall_days_before, rainfall_days_after, main_region_shape, rain_shape, soil_moisture_shape) for date, events in refined_flood_events.items()]
         
-    #     for future in as_completed(futures):
-    #         try:
-    #             result = future.result()
-    #             # print(f'Result: {result}')
-    #         except Exception as exc:
-    #             print(f'Generated an exception: {exc}')
+        for future in as_completed(futures):
+            try:
+                result = future.result()
+                # print(f'Result: {result}')
+            except Exception as exc:
+                print(f'Generated an exception: {exc}')
 
 
     # NON-FLOOD EVENTS
     print("Running non flood events....")
-    # num_dates_to_generate = 6
+    num_dates_to_generate = 250
     safety_window = 10
-    # random_dates = generate_random_non_flood_dates(os.environ["PROJECT_FLOOD_CORE_PATHS"], num_dates_to_generate, safety_window, os.environ["PROJECT_FLOOD_DATA"])
+    random_dates = generate_random_non_flood_dates(os.environ["PROJECT_FLOOD_CORE_PATHS"], num_dates_to_generate, safety_window, os.environ["PROJECT_FLOOD_DATA"])
 
-    random_dates = pd.read_csv(core_config['rerun_path'], header=None)
-    random_dates = list(random_dates.values.flatten())
-    random_dates = [pd.to_datetime(i) for i in random_dates]
-
+    # random_dates = pd.read_csv(core_config['rerun_path'], header=None)
+    # random_dates = list(random_dates.values.flatten())
+    # random_dates = [pd.to_datetime(i) for i in random_dates]
 
     # random_dates = [pd.Timestamp(year=2000, month=9, day=18)]
 

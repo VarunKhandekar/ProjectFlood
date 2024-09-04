@@ -7,7 +7,22 @@ import ee
 from data_extraction.generic_helpers import *
 
 
-def plot_bangladesh_flood_distribution(core_config_file_path: str, data_config_file_path: str):
+def plot_bangladesh_flood_distribution(core_config_file_path: str, data_config_file_path: str) -> None:
+    """
+    Plot the distribution of flood events in Bangladesh by month and save the plot as an image file.
+
+    Args:
+        core_config_file_path (str): Path to the core configuration JSON file containing the flood events file path.
+        data_config_file_path (str): Path to the data configuration JSON file containing the path for saving the plot.
+
+    Returns:
+        None: The function generates and saves a bar plot showing the total count of flood events in Bangladesh by month.
+
+    Notes:
+        The function reads the flood events data from an Excel file, calculates the total number of flood events per month,
+        and saves the bar chart as a PNG image in the directory specified in the data configuration file.
+
+    """
     with open(core_config_file_path) as core_config_file:
         core_config = json.load(core_config_file)
     
@@ -38,7 +53,20 @@ def plot_bangladesh_flood_distribution(core_config_file_path: str, data_config_f
     plt.show()
 
 
-def plot_bangladesh_monthly_soil_moisture(data_config_file_path: str, shape: ee.geometry.Geometry):  
+def plot_bangladesh_monthly_soil_moisture(data_config_file_path: str, shape: ee.geometry.Geometry) -> ee.ImageCollection:
+    """
+    Plot the average monthly soil moisture in Bangladesh from 2000 to 2018 (GFD dataset date range) and save the plot as an image file. 
+    
+    Soil moisture data is retrieved from the 'ECMWF/ERA5_LAND/MONTHLY_AGGR' dataset
+
+    Args:
+        data_config_file_path (str): Path to the data configuration JSON file containing the path for saving the plot.
+        shape (ee.geometry.Geometry): The geographical region for which the soil moisture data will be analyzed.
+
+    Returns:
+        ee.ImageCollection: The image collection containing the monthly average soil moisture values.
+
+    """
     with open(data_config_file_path) as data_config_file:
         data_config = json.load(data_config_file)
     # Define the date range based on GFD
@@ -88,7 +116,17 @@ def plot_bangladesh_monthly_soil_moisture(data_config_file_path: str, shape: ee.
     return monthly_averages
 
 
-def plot_soil_moisture_grid(data_config_file_path: str):
+def plot_soil_moisture_grid(data_config_file_path: str) -> None:
+    """
+    Plot a grid of average monthly soil moisture images and save the plot as an image file. Each item in the grid represents a month.
+
+    Args:
+        data_config_file_path (str): Path to the data configuration JSON file containing the directory path for soil moisture images and the path for saving the plot.
+
+    Returns:
+        None: The function generates and saves a grid plot of monthly soil moisture images.
+
+    """
     with open(data_config_file_path) as data_config_file:
         data_config = json.load(data_config_file)
 
