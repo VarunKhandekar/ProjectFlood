@@ -1,4 +1,5 @@
 import torch.distributed as dist
+from typing import Any
 from torch.nn.parallel import DistributedDataParallel as DDP
 from dataloaders.convLSTM_dataset import *
 from models.ConvLSTMSeparateBranches import *
@@ -6,26 +7,85 @@ from visualisations.visualisation_helpers import *
 from model_runs.model_run_helpers import *
 
 
-def get_attribute(model, attr):
+def get_attribute(model: torch.nn.Module, attr: str) -> Any:
+    """
+    Retrieve an attribute from a model, handling both regular and distributed (DataParallel/DistributedDataParallel) models.
+
+    Args:
+        model (torch.nn.Module): The model from which to retrieve the attribute.
+        attr (str): The name of the attribute to retrieve.
+
+    Returns:
+        Any: The value of the requested attribute from the model.
+
+    """
     if isinstance(model, (torch.nn.DataParallel, torch.nn.parallel.DistributedDataParallel)):
         return getattr(model.module, attr)
     return getattr(model, attr)
 
 
-def setup(rank, world_size):
+def setup(rank: int, world_size: int) -> None:
+    """
+    Set up the environment for distributed training by initializing the process group.
+
+    Args:
+        rank (int): The rank of the current process in the distributed setup.
+        world_size (int): The total number of processes participating in the distributed training.
+
+    Returns:
+        None: The function sets up the distributed environment for training.
+
+    """
     os.environ['MASTER_ADDR'] = 'localhost'
     os.environ['MASTER_PORT'] = '12355'
     dist.init_process_group("nccl", rank=rank, world_size=world_size)
     torch.manual_seed(42)
 
 
-def cleanup():
+def cleanup() -> None:
+    """
+    Clean up the distributed process group by destroying it after distributed training is complete.
+
+    Args:
+        None
+
+    Returns:
+        None: The function destroys the process group, cleaning up resources used for distributed training.
+
+    """
     dist.destroy_process_group()
 
 
-def train_model_dist(rank: int, world_size: int, data_config_path: str, model,  criterion_type: str, optimizer_type: str, lr, num_epochs: int, 
+def train_model_dist(rank: int, world_size: int, data_config_path: str, model: torch.nn.Module, criterion_type: str, optimizer_type: str, lr: float, num_epochs: int, 
                      plot_training_images: bool, plot_losses: bool, train_batch_size: int, 
-                     train_dataset: Dataset, val_dataloader: DataLoader = None, is_final: bool = False):
+                     train_dataset: torch.utils.data.Dataset, val_dataloader: torch.utils.data.DataLoader = None, is_final: bool = False) -> tuple:
+    """
+    Train a model using distributed data parallelism (DDP) across multiple GPUs with specified hyperparameters. Optionally validate, plot results, and save model checkpoints.
+
+    Args:
+        rank (int): The rank of the current process in the distributed setup.
+        world_size (int): The total number of processes participating in the distributed training.
+        data_config_path (str): Path to the configuration file containing necessary file paths for saving models, plots, etc.
+        model (torch.nn.Module): The model to be trained.
+        criterion_type (str): The loss function to be used (e.g., 'BCEWithLogitsLoss', 'MSELoss').
+        optimizer_type (str): The optimizer type (e.g., 'Adam', 'SGD').
+        lr (float): Learning rate for the optimizer.
+        num_epochs (int): Number of epochs to train the model.
+        plot_training_images (bool): If True, plots selected validation images during training.
+        plot_losses (bool): If True, plots the training and validation loss curve.
+        train_batch_size (int): The batch size for the training DataLoader.
+        train_dataset (torch.utils.data.Dataset): The dataset for training the model.
+        val_dataloader (torch.utils.data.DataLoader, optional): DataLoader for the validation dataset. Default is None.
+        is_final (bool, optional): Whether this is the final model training (for naming the saved model). Default is False.
+
+    Returns:
+        tuple: A tuple containing:
+            - model (torch.nn.Module): The trained model.
+            - epoch (int): The final epoch number reached.
+
+    Notes:
+        This function uses Distributed Data Parallel (DDP) for multi-GPU training. It sets up a distributed environment, synchronizes training across processes, and handles validation and early stopping in a distributed manner.
+    """
     setup(rank, world_size)
     torch.cuda.set_device(rank)
     model = model.to(rank)

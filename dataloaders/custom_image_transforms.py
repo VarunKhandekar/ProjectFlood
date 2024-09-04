@@ -2,6 +2,9 @@ import random
 import torchvision.transforms.v2.functional as F
 
 class RandomHorizontalFlip(object):
+    '''
+    Randomly horizontally flip label and all input images.
+    '''
     def __call__(self, images, label):
         transformed_images = {}
         if random.random() > 0.5:
@@ -14,6 +17,9 @@ class RandomHorizontalFlip(object):
 
 
 class RandomVerticalFlip(object):
+    '''
+    Randomly vertically flip label and all input images.
+    '''
     def __call__(self, images, label):
         transformed_images = {}
         if random.random() > 0.5:
@@ -27,6 +33,9 @@ class RandomVerticalFlip(object):
 
 
 class RandomRotation(object):
+    '''
+    Randomly rotate label and all input images (90 degree multiples).
+    '''
     def __init__(self, degrees):
         self.degrees = degrees
 
@@ -58,6 +67,9 @@ class RandomRotation(object):
     
 
 class Compose(object):
+    '''
+    Create a set of sequential random transformations to be applied to label and all input images.
+    '''
     def __init__(self, transforms):
         self.transforms = transforms
 

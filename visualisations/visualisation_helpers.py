@@ -12,7 +12,20 @@ from PIL import Image
 import numpy as np
 
 
-def plot_model_output_vs_label(outputs, labels, labels_flooded, filename):
+def plot_model_output_vs_label(outputs: torch.Tensor, labels: torch.Tensor, labels_flooded: list, filename: str) -> None:
+    """
+    Plot and compare model outputs with true labels, indicating whether the region was flooded or not, and save the plot as an image file.
+
+    Args:
+        outputs (torch.Tensor): The model's predicted outputs.
+        labels (torch.Tensor): The ground truth labels.
+        labels_flooded (list): A list indicating whether each sample corresponds to a flooded region (True/False).
+        filename (str): Path and name of the file where the plot will be saved.
+
+    Returns:
+        None: The function generates and saves a grid plot comparing model outputs with true labels.
+    
+    """
     num_images = 4  # Number of images to display
     fig, axes = plt.subplots(2, num_images, figsize=(15, 6))  # Create a grid of subplots
 
@@ -50,7 +63,20 @@ def plot_model_output_vs_label(outputs, labels, labels_flooded, filename):
     plt.close()
 
 
-def plot_model_output_vs_label_square(outputs, labels, labels_flooded, filename):
+def plot_model_output_vs_label_square(outputs: torch.Tensor, labels: torch.Tensor, labels_flooded: list, filename: str) -> None:
+    """
+    Plot and compare model outputs with true labels in a square grid format, indicating whether the region was flooded or not, and save the plot as an image file.
+
+    Args:
+        outputs (torch.Tensor or list): The model's predicted outputs, either as a tensor or a list of tensors.
+        labels (torch.Tensor or list): The ground truth labels, either as a tensor or a list of tensors.
+        labels_flooded (list): A list indicating whether each sample corresponds to a flooded region (True/False).
+        filename (str): Path and name of the file where the plot will be saved.
+
+    Returns:
+        None: The function generates and saves a grid plot comparing model outputs with true labels.
+
+    """
     num_images = 8  # Number of images to display
     fig, axes = plt.subplots(int(num_images/2), int(num_images/2), figsize=(num_images, num_images))  # Create a grid of subplots
 
@@ -94,9 +120,22 @@ def plot_model_output_vs_label_square(outputs, labels, labels_flooded, filename)
     plt.close()
 
 
-def plot_loss_chart(losses, epochs, filename, hyperparams):
+def plot_loss_chart(losses: list, epochs: list, filename: str, hyperparams: dict) -> None:
+    """
+    Plot the training and validation loss over epochs and save the chart as an image file.
+
+    Args:
+        losses (list): A list of loss values for each phase (e.g., training, validation) across epochs.
+        epochs (list): A list of epoch numbers corresponding to the loss values.
+        filename (str): The path and name of the file where the plot will be saved.
+        hyperparams (dict): A dictionary containing hyperparameters to display on the plot.
+
+    Returns:
+        None: The function generates and saves a line plot of the loss over epochs, including hyperparameters as text on the plot.
+    
+    """
     plt.figure(figsize=(10, 6))
-    labels = ['train', 'validation', 'test']
+    labels = ['train', 'validation']
     for i, series in enumerate(losses):
         plt.plot(epochs, series, marker=None, linestyle='-', label=f'{labels[i]}')
    
@@ -123,7 +162,19 @@ def plot_loss_chart(losses, epochs, filename, hyperparams):
     plt.close()
 
 
-def strip_black_pixel_padding_PIL(config_file_path: str, resolution: int, image_path: str):
+def strip_black_pixel_padding_PIL(config_file_path: str, resolution: int, image_path: str) -> np.ndarray:
+    """
+    Remove black pixel padding from an image based on the specified resolution and return the cropped image as a NumPy array.
+
+    Args:
+        config_file_path (str): Path to the configuration file containing image dimension information.
+        resolution (int): The resolution of the image for which padding should be removed.
+        image_path (str): Path to the image file that needs to be cropped.
+
+    Returns:
+        np.ndarray: The cropped image as a NumPy array without black pixel padding.
+
+    """
     with open(config_file_path) as core_config_file:
         core_config = json.load(core_config_file)
     
@@ -141,7 +192,22 @@ def strip_black_pixel_padding_PIL(config_file_path: str, resolution: int, image_
     return cropped_image
 
 
-def plot_pixel_difference(model_name, outputs, labels, labels_flooded, filename, threshold=0.5):
+def plot_pixel_difference(model_name: str, outputs: list, labels: list, labels_flooded: list, filename: str, threshold: float = 0.5) -> None:
+    """
+    Plot and compare model predictions with true labels, showing pixel-level differences, and save the plot as an image file.
+
+    Args:
+        model_name (str): The name of the model being evaluated.
+        outputs (list): A list of model output tensors or arrays.
+        labels (list): A list of ground truth label tensors or arrays.
+        labels_flooded (list): A list indicating whether each sample corresponds to a flooded region (True/False).
+        filename (str): The path and name of the file where the plot will be saved.
+        threshold (float, optional): The threshold value for binary classification of outputs. Default is 0.5.
+
+    Returns:
+        None: The function generates and saves a grid plot showing the true labels, model predictions, and pixel differences.
+    
+    """
     if isinstance(outputs[0], torch.Tensor):
         outputs = [i.cpu().numpy() for i in outputs] 
     if isinstance(labels[0], torch.Tensor):
@@ -200,7 +266,22 @@ def plot_pixel_difference(model_name, outputs, labels, labels_flooded, filename,
     plt.close()
 
 
-def plot_final_model_output_vs_label(model_names, outputs, labels, labels_flooded, filename, risk=False):
+def plot_final_model_output_vs_label(model_names: list, outputs: list, labels: list, labels_flooded: list, filename: str, risk: bool = False) -> None:
+    """
+    Plot and compare model outputs from multiple models with true labels, displaying whether regions were flooded or not, and save the plot as an image file.
+
+    Args:
+        model_names (list): A list of model names corresponding to each set of outputs.
+        outputs (list): A list of lists, where each inner list contains the outputs from a model.
+        labels (list): A list of ground truth label tensors or arrays.
+        labels_flooded (list): A list indicating whether each sample corresponds to a flooded region (True/False).
+        filename (str): The path and name of the file where the plot will be saved.
+        risk (bool, optional): If True, displays outputs with a risk colormap. Default is False.
+
+    Returns:
+        None: The function generates and saves a grid plot comparing model outputs with true labels.
+
+    """
     num_images = len(labels)  # Number of images to display
     # fig, axes = plt.subplots(len(model_names) + 1, num_images, figsize=(num_images*3, (len(model_names) + 1)*3))  # Create a grid of subplots; figsize is columns, rows
     fig = plt.figure(figsize=(num_images*2.5, (len(model_names) + 1)*2.5))  # Create a grid of subplots; figsize is columns, rows
@@ -256,7 +337,24 @@ def plot_final_model_output_vs_label(model_names, outputs, labels, labels_floode
     plt.close()
 
 
-def plot_risk_on_map(model_names, outputs, labels, labels_flooded, filename, crs_transform):
+def plot_risk_on_map(model_names: list, outputs: list, labels: list, labels_flooded: list, filename: str, crs_transform: list) -> None:
+    """
+    Plot and compare model outputs from multiple models with true labels on a map, showing flood risk, and save the plot as an image file.
+
+    Risk maps are overlaid on top of the appropriate world location using the crs_transform parameters provided.
+
+    Args:
+        model_names (list): A list of model names corresponding to each set of outputs.
+        outputs (list): A list of lists, where each inner list contains the outputs from a model.
+        labels (list): A list of ground truth label tensors or arrays.
+        labels_flooded (list): A list indicating whether each sample corresponds to a flooded region (True/False).
+        filename (str): The path and name of the file where the plot will be saved.
+        crs_transform (list): A list of transformation parameters for mapping coordinates.
+
+    Returns:
+        None: The function generates and saves a map-based grid plot comparing model outputs with true labels.
+
+    """
     num_images = len(labels)  # Number of images to display
     # fig, axes = plt.subplots(len(model_names) + 1, num_images, figsize=(num_images*3, (len(model_names) + 1)*3))  # Create a grid of subplots; figsize is columns, rows
     fig = plt.figure(figsize=(num_images*4, (len(model_names) + 1)*4))  # Create a grid of subplots; figsize is columns, rows
@@ -345,13 +443,19 @@ def plot_risk_on_map(model_names, outputs, labels, labels_flooded, filename, crs
     plt.close()
 
 
-def plot_metrics_vs_thresholds(metric_accumulators: list, filename: str, titles: list = None):
+def plot_metrics_vs_thresholds(metric_accumulators: list, filename: str, titles: list = None) -> None:
     """
-    Plots Precision, Recall, Accuracy, and F1 Scores against Thresholds for a list of metric accumulators.
+    Plot Precision, Recall, Accuracy, and F1 Scores against thresholds for various models and save the plot as an image file.
 
-    Parameters:
-    - metric_accumulators (list of dict): A list where each element is a metric_accumulator dictionary.
-    - titles (list of str, optional): A list of titles for each subplot. If not provided, subplots will be numbered.
+    The relevant data points for the models are saved in the dictionaries in the metric_accumulators list.
+
+    Args:
+        metric_accumulators (list): A list of dictionaries, where each dictionary contains performance metrics ('precision_scores', 'recall_scores', 'accuracy_scores', 'f1_scores') for different thresholds.
+        filename (str): The path and name of the file where the plot will be saved.
+        titles (list, optional): A list of titles for each subplot. If not provided, subplots will be numbered automatically.
+
+    Returns:
+        None: The function generates and saves a plot showing how metrics change across thresholds.
 
     """
     
@@ -392,17 +496,21 @@ def plot_metrics_vs_thresholds(metric_accumulators: list, filename: str, titles:
     plt.show()
 
 
-def plot_roc_auc_curves(metric_accumulators: list, filename: str, titles: list = None):
+def plot_roc_auc_curves(metric_accumulators: list, filename: str, titles: list = None) -> None:
     """
-    Plots the ROC curve and calculates the AUC (Area Under the Curve) for each metric_accumulator in the list.
+    Plot the ROC (Receiver Operating Characteristic) curve and calculate the AUC (Area Under the Curve) for various models, saving the plot as an image file.
 
-    Parameters:
-    - metric_accumulators (list of dict): A list where each element is a metric_accumulator dictionary containing
-      'false_positive_rate' and 'recall_scores' (True Positive Rate).
-    - titles (list of str, optional): A list of titles for each subplot. If not provided, subplots will be numbered.
+    The relevant data points for the models are saved in the dictionaries in the metric_accumulators list.
 
-    """
-    
+    Args:
+        metric_accumulators (list): A list of dictionaries, where each dictionary contains 'false_positive_rates' and 'recall_scores' (True Positive Rate) for different thresholds.
+        filename (str): The path and name of the file where the plot will be saved.
+        titles (list, optional): A list of titles for each subplot. If not provided, subplots will be numbered automatically.
+
+    Returns:
+        None: The function generates and saves a plot showing the ROC curve and AUC for each metric accumulator.
+
+    """    
     num_plots = len(metric_accumulators)
 
     fig, axs = plt.subplots(1, num_plots, figsize=(15, 6), sharey=True)

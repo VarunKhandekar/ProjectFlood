@@ -11,7 +11,21 @@ from models.ConvLSTMMerged import *
 from evaluation.model_evaluation_helpers import *
 
 
-def load_checkpoint(filepath: str):
+def load_checkpoint(filepath: str) -> tuple:
+    """
+    Load a pytorch model checkpoint from a file, including the model, optimizer state, epoch, and hyperparameters.
+
+    Args:
+        filepath (str): Path to the checkpoint file to load.
+
+    Returns:
+        tuple: A tuple containing:
+            - model (torch.nn.Module): The model initialized and loaded with the checkpoint state.
+            - optimizer (torch.optim.Optimizer): The optimizer loaded with the checkpoint state.
+            - epoch (int): The epoch number at which the checkpoint was saved.
+            - hyperparams (dict): A dictionary of hyperparameters used to configure the model and optimizer.
+
+    """
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     checkpoint = torch.load(filepath, map_location=device)
     hyperparams = checkpoint['hyperparams']
@@ -37,29 +51,84 @@ def load_checkpoint(filepath: str):
     return model, optimizer, checkpoint['epoch'], hyperparams
 
 
-def KL_DivLoss(y_pred: torch.Tensor, y_true: torch.Tensor):
+def KL_DivLoss(y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
+    """
+    Compute the Kullback-Leibler (KL) divergence loss between two tensors.
+
+    Args:
+        y_pred (torch.Tensor): Predicted tensor of log probabilities.
+        y_true (torch.Tensor): Ground truth tensor of log probabilities.
+
+    Returns:
+        torch.Tensor: The batch mean KL divergence loss between `y_pred` and `y_true`.
+
+    """
     kl_loss = torch.nn.KLDivLoss(reduction="batchmean", log_target=True)
     log_input = F.log_softmax(y_pred, dim=1)
     log_target = F.log_softmax(y_true, dim=1)
     return kl_loss(log_input, log_target)
 
 
-def RMSELoss(y_pred: torch.Tensor, y_true: torch.Tensor):
+def RMSELoss(y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
+    """
+    Compute the Root Mean Squared Error (RMSE) loss between predicted and true tensors.
+
+    Args:
+        y_pred (torch.Tensor): Predicted tensor.
+        y_true (torch.Tensor): Ground truth tensor.
+
+    Returns:
+        torch.Tensor: The RMSE loss between `y_pred` and `y_true`.
+
+    """
     mse_loss = torch.nn.MSELoss(reduction="mean")
     return torch.sqrt(mse_loss(y_true, y_pred))
 
 
-def MAELoss(y_pred: torch.Tensor, y_true: torch.Tensor):
+def MAELoss(y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
+    """
+    Compute the Mean Absolute Error (MAE) loss between predicted and true tensors.
+
+    Args:
+        y_pred (torch.Tensor): Predicted tensor.
+        y_true (torch.Tensor): Ground truth tensor.
+
+    Returns:
+        torch.Tensor: The square root of the MAE loss between `y_pred` and `y_true`.
+
+    """
     mae_loss = torch.nn.L1Loss(reduction="mean")
     return torch.sqrt(mae_loss(y_true, y_pred))  
 
 
-def PSNR(y_pred: torch.Tensor, y_true: torch.Tensor):
+def PSNR(y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
+    """
+    Compute the Peak Signal-to-Noise Ratio (PSNR) between predicted and true tensors.
+
+    Args:
+        y_pred (torch.Tensor): Predicted tensor.
+        y_true (torch.Tensor): Ground truth tensor.
+
+    Returns:
+        torch.Tensor: The PSNR value between `y_pred` and `y_true`.
+
+    """
     psnr = torchmetrics.PeakSignalNoiseRatio()
     return  psnr(y_pred, y_true)   
 
 
-def SSIM(y_pred: torch.Tensor, y_true: torch.Tensor):
+def SSIM(y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
+    """
+    Compute the Structural Similarity Index (SSIM) between predicted and true images.
+
+    Args:
+        y_pred (torch.Tensor): The predicted tensor, with shape [B, H, W] or [B, C, H, W].
+        y_true (torch.Tensor): The ground truth tensor, with shape [B, H, W] or [B, C, H, W].
+
+    Returns:
+        torch.Tensor: The SSIM value between `y_pred` and `y_true`.
+
+    """
     if y_pred.dim() == 3:  # If shape is [B, H, W], add a channel dimension
         y_pred = y_pred.unsqueeze(1)  # Shape becomes [B, 1, H, W]
         y_true = y_true.unsqueeze(1)  # Shape becomes [B, 1, H, W]
@@ -67,7 +136,20 @@ def SSIM(y_pred: torch.Tensor, y_true: torch.Tensor):
     return ssim(y_pred, y_true)
 
 
-def SSIM_structural(y_pred: torch.Tensor, y_true: torch.Tensor, C3: float = 1e-3, epsilon:float = 1e-10):
+def SSIM_structural(y_pred: torch.Tensor, y_true: torch.Tensor, C3: float = 1e-3, epsilon:float = 1e-10) -> torch.Tensor:
+    """
+    Compute the structural component of the Structural Similarity Index (SSIM) between predicted and true images.
+
+    Args:
+        y_pred (torch.Tensor): The predicted tensor, with shape [B, H, W] or [B, C, H, W].
+        y_true (torch.Tensor): The ground truth tensor, with shape [B, H, W] or [B, C, H, W].
+        C3 (float, optional): Stability constant for the structural component. Default is 1e-3.
+        epsilon (float, optional): A small value to avoid division by zero. Default is 1e-10.
+
+    Returns:
+        torch.Tensor: The mean structural component of SSIM between `y_pred` and `y_true`.
+
+    """
     if y_pred.dim() == 3:  # If shape is [B, H, W], add a channel dimension
         y_pred = y_pred.unsqueeze(1)  # Shape becomes [B, 1, H, W]
         y_true = y_true.unsqueeze(1)  # Shape becomes [B, 1, H, W]
@@ -91,7 +173,39 @@ def SSIM_structural(y_pred: torch.Tensor, y_true: torch.Tensor, C3: float = 1e-3
     return s.mean()
 
 
-def evaluate_model(model, test_dataloader, criterion_str: str, device, mask_path: str, crop_right: int, crop_bottom: int, crop_left: int = 0, crop_top: int = 0):
+def evaluate_model(model: torch.nn.Module, test_dataloader: torch.utils.data.DataLoader, 
+                   criterion_str: str, device: torch.device, mask_path: str, 
+                   crop_right: int, crop_bottom: int, crop_left: int = 0, crop_top: int = 0) -> dict:
+    """
+    Evaluate a model's performance on a test dataset by calculating various metrics such as RMSE, MAE, PSNR, SSIM, and confusion matrices across different thresholds.
+
+    Args:
+        model (torch.nn.Module): The model to be evaluated.
+        test_dataloader (torch.utils.data.DataLoader): The DataLoader providing the test dataset.
+        criterion_str (str): The name of the loss function to be used (e.g., 'MSELoss').
+        device (torch.device): The device to run the evaluation on (CPU or CUDA).
+        mask_path (str): Path to the numpy file containing the mask (True/False values).
+        crop_right (int): The right boundary for cropping the outputs and labels.
+        crop_bottom (int): The bottom boundary for cropping the outputs and labels.
+        crop_left (int, optional): The left boundary for cropping the outputs and labels. Default is 0.
+        crop_top (int, optional): The top boundary for cropping the outputs and labels. Default is 0.
+
+    Returns:
+        dict: A dictionary containing various performance metrics, including:
+            - 'average_rmse': Average Root Mean Squared Error (RMSE) across batches.
+            - 'average_mae': Average Mean Absolute Error (MAE) across batches.
+            - 'average_psnr': Average Peak Signal-to-Noise Ratio (PSNR) across batches.
+            - 'average_ssim': Average Structural Similarity Index Measure (SSIM) across batches.
+            - 'average_ssim_struct': Average structural component of SSIM across batches.
+            - 'average_loss': Average loss across batches.
+            - 'confusion_matrices': Confusion matrices for different thresholds.
+            - 'accuracy_scores': Accuracy scores for different thresholds.
+            - 'precision_scores': Precision scores for different thresholds.
+            - 'recall_scores': Recall scores for different thresholds.
+            - 'f1_scores': F1 scores for different thresholds.
+            - 'false_positive_rates': False positive rates for different thresholds.
+
+    """
     model = model.to(device)
     model.eval()
     criterion = getattr(torch.nn, criterion_str)()
@@ -217,7 +331,19 @@ def evaluate_model(model, test_dataloader, criterion_str: str, device, mask_path
     return metric_accumulator
 
 
-def save_metrics_to_csv(metric_accumulators: list, filename: str, model_names: list):
+def save_metrics_to_csv(metric_accumulators: list, filename: str, model_names: list) -> None:
+    """
+    Save accumulated evaluation metrics for multiple models to a CSV file.
+
+    Args:
+        metric_accumulators (list): A list of dictionaries, where each dictionary contains the metrics accumulated for a model.
+        filename (str): The path and name of the CSV file to save the metrics.
+        model_names (list): A list of model names corresponding to the metric accumulators, used as the index in the CSV.
+
+    Returns:
+        None: The function saves the metrics to a CSV file.
+
+    """
     data = {}
     for metric_accumulator in metric_accumulators:
         for key, value in metric_accumulator.items():
@@ -229,7 +355,21 @@ def save_metrics_to_csv(metric_accumulators: list, filename: str, model_names: l
     df.to_csv(filename)
 
 
-def collect_images(model, dataloader, size):
+def collect_images(model: torch.nn.Module, dataloader: torch.utils.data.DataLoader, size: int) -> tuple:
+    """
+    Collect a specified number of flooded and non-flooded images (output, target, and label) from the dataloader using a model.
+
+    Args:
+        model (torch.nn.Module): The model used to generate outputs from the inputs.
+        dataloader (torch.utils.data.DataLoader): The dataloader providing batches of inputs, targets, and labels indicating flooded or non-flooded areas.
+        size (int): The number of flooded and non-flooded images to collect.
+
+    Returns:
+        tuple: A tuple containing two lists:
+            - `flooded_images`: A list of tuples (output, target, flooded label) for flooded images.
+            - `non_flooded_images`: A list of tuples (output, target, non-flooded label) for non-flooded images.
+
+    """
     flooded_images, non_flooded_images = [], []
     for inputs, targets, flooded in dataloader:
         outputs = model(inputs)
@@ -240,4 +380,4 @@ def collect_images(model, dataloader, size):
                 non_flooded_images.append((outputs[i], targets[i], flooded[i]))
             if len(flooded_images) >= size and len(non_flooded_images) >= size:
                 return flooded_images, non_flooded_images
-    return flooded_images, non_flooded_images # list of tuples
+    return flooded_images, non_flooded_images

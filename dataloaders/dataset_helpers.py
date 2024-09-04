@@ -4,7 +4,20 @@ import pandas as pd
 import os
 from data_extraction.generic_helpers import *
 
-def get_log_rainfall_stats_training(training_path: str, rainfall_dir: str, preceding_rainfall_days: int, forecast_rainfall_days: int = 1):
+def get_log_rainfall_stats_training(training_path: str, rainfall_dir: str, preceding_rainfall_days: int, forecast_rainfall_days: int = 1) -> tuple:
+    """
+    Calculate the minimum and maximum log-transformed rainfall values for a set of training images, considering a set number of rainfall images before and after each event date.
+
+    Args:
+        training_path (str): Path to the directory containing the training images.
+        rainfall_dir (str): Path to the directory containing rainfall images.
+        preceding_rainfall_days (int): Number of days preceding the event date to include in the rainfall statistics.
+        forecast_rainfall_days (int, optional): Number of days after the event date to include in the rainfall statistics. Default is 1.
+
+    Returns:
+        tuple: A tuple containing the minimum and maximum log-transformed rainfall values.
+
+    """
     minimum, maximum = 0.0, 0.0
     
     for im in os.listdir(training_path):
@@ -43,11 +56,34 @@ def get_log_rainfall_stats_training(training_path: str, rainfall_dir: str, prece
 #     return minimum, maximum
 
 
-def normalise_rainfall(image, min, max):
+def normalise_rainfall(image: np.ndarray, min: float, max: float) -> np.ndarray:
+    """
+    Normalize a rainfall image to a range between 0 and 1 using the given minimum and maximum values.
+
+    Args:
+        image (np.ndarray): The input rainfall image as a NumPy array.
+        min (float): The minimum value of the rainfall data for normalization.
+        max (float): The maximum value of the rainfall data for normalization.
+
+    Returns:
+        np.ndarray: The normalized rainfall image with values between 0 and 1.
+
+    """
     return (image - min)/(max - min)
 
 
-def standardise_locally(image, thres_roi = 1.0):
+def standardise_locally(image: np.ndarray, thres_roi: float = 1.0) -> np.ndarray:
+    """
+    Standardize a rainfall image locally based on the mean and standard deviation of pixel values above a threshold.
+
+    Args:
+        image (np.ndarray): The input rainfall image as a NumPy array.
+        thres_roi (float, optional): The threshold percentile to define the region of interest (ROI). Default is 1.0 (100th percentile).
+
+    Returns:
+        np.ndarray: The locally standardized rainfall image, where the mean of the ROI is subtracted and the standard deviation is normalized.
+
+    """
     val_l = np.percentile(image, thres_roi)
     roi = (image >= val_l)
     mu, sigma = np.mean(image[roi]), np.std(image[roi])
@@ -55,8 +91,25 @@ def standardise_locally(image, thres_roi = 1.0):
     image2 = (image - mu) / (sigma + eps)
     return image2
 
-def generate_label_images(label_name, soil_moisture_dir, topology_dir, rainfall_dir, rainfall_min, rainfall_max, preceding_rainfall_days, forecast_rainfall_days = 1):
+def generate_label_images(label_name: str, soil_moisture_dir: str, topology_dir: str, rainfall_dir: str, 
+                          rainfall_min: float, rainfall_max: float, preceding_rainfall_days: int, forecast_rainfall_days: int = 1) -> dict:
+    """
+    Generate and collate various conditioning images (topology, soil moisture, and rainfall) into a dictionary based on a given label name.
 
+    Args:
+        label_name (str): The name of the label, used to extract the date for generating corresponding images.
+        soil_moisture_dir (str): Directory containing soil moisture images.
+        topology_dir (str): Directory containing topology images.
+        rainfall_dir (str): Directory containing rainfall images.
+        rainfall_min (float): Minimum value for rainfall data, used for normalization.
+        rainfall_max (float): Maximum value for rainfall data, used for normalization.
+        preceding_rainfall_days (int): Number of days before the event date to include in rainfall images.
+        forecast_rainfall_days (int, optional): Number of days after the event date to include in rainfall images. Default is 1.
+
+    Returns:
+        dict: A dictionary containing the generated images for topology, soil moisture, preceding rainfall, and forecast rainfall.
+
+    """
     # Get 'conditioning' images and collate into a dictionary
     # Extract date from file path
     images_dict = {}
@@ -103,7 +156,17 @@ def generate_label_images(label_name, soil_moisture_dir, topology_dir, rainfall_
     
     return images_dict
 
-def prepare_tensors(tensor_list):
+def prepare_tensors(tensor_list: list) -> torch.Tensor:
+    """
+    Prepare a list of tensors by stacking them or adjusting the dimensions if needed.
+
+    Args:
+        tensor_list (list): A list of PyTorch tensors to be processed.
+
+    Returns:
+        torch.Tensor: A stacked tensor if more than one tensor is in the list, or a tensor with an added dimension if the list contains only one tensor.
+
+    """
     if len(tensor_list) > 1:
         # Stack if there's more than one tensor
         return torch.stack(tensor_list, dim=0)
