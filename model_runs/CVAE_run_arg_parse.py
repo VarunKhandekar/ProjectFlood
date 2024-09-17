@@ -1,0 +1,116 @@
+import torch
+import datetime
+import os
+import argparse
+import time
+from dataloaders.convLSTM_dataset import *
+from dataloaders.custom_image_transforms import *
+from models.ConvLSTMMerged import *
+from models.ConditionalConvVAE import *
+from model_runs.model_run_helpers import *
+from model_runs.model_run_helpers_cvae import *
+from evaluation.model_evaluation_helpers import *
+
+
+if __name__ == "__main__":
+    # CONFIGURATION AND HYPERPARAMETERS
+    start_time = time.time()
+    model_run_date = datetime.date.today().strftime(r'%Y%m%d')
+
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print('Device: {0}'.format(device))
+    torch.manual_seed(42)
+
+    parser = argparse.ArgumentParser(description='Training parameters')
+
+    parser.add_argument('--num_epochs', type=int, default=8000)
+    parser.add_argument('--train_batch_size', type=int, default=32)
+    parser.add_argument('--learning_rate', type=float, default=0.0001)
+    # parser.add_argument('--preceding_rainfall_days', type=int, default=1)
+    parser.add_argument('--dropout_prob', type=float, default=0.3)
+    parser.add_argument('--latent_dims', type=int, default=16)
+    # parser.add_argument('--conv_block_layers', type=int, default=4)
+    # parser.add_argument('--convLSTM_layers', type=int, default=2)
+    parser.add_argument('--optimizer_str', type=str, default='RMSprop')
+    parser.add_argument('--criterion_beta', type=int, default=1)
+    parser.add_argument('--resolution', type=int, default=256)
+    parser.add_argument('--transforms', type=str, default='False')
+
+    args = parser.parse_args()
+
+    num_epochs = args.num_epochs
+    train_batch_size = args.train_batch_size
+    learning_rate = args.learning_rate
+    # preceding_rainfall_days = args.preceding_rainfall_days
+    dropout_prob = args.dropout_prob
+    latent_dims = args.latent_dims
+    # conv_block_layers = args.conv_block_layers
+    # convLSTM_layers = args.convLSTM_layers
+    optimizer_str = args.optimizer_str
+    criterion_beta = args.criterion_beta
+    resolution = args.resolution
+    transforms = True if args.transforms.lower() == 'true' else False
+
+
+    with open(os.environ["PROJECT_FLOOD_DATA"]) as config_file_path:
+        config_data = json.load(config_file_path)
+
+    if not os.path.exists(config_data["saved_models_path"]):
+        os.makedirs(config_data["saved_models_path"])
+    
+    with open(os.environ["PROJECT_FLOOD_DATA"]) as data_config_file:
+        data_config = json.load(data_config_file)
+
+    # Build the model
+    best_lstm_model, _, _, best_lstm_model_params = load_checkpoint(os.path.join(data_config['saved_models_path'], 'ConvLSTMMerged_epochs2000_batchsize8_lr0p001_precedingrainfall1_dropout0p25_outputchannels16_convblocklayers2_convLSTMlayers2_optimRMSprop_criterionBCELoss_transformsFalse_res256_20240901_1066_earlystop.pt'))
+    best_lstm_model.eval()  # Set to evaluation mode
+
+    hyperparams = {
+        'epochs': num_epochs,
+        'batchsize': train_batch_size,
+        'lr': learning_rate,
+        'precedingrainfall': best_lstm_model.preceding_rainfall_days,
+        'dropout': dropout_prob,
+        'latentdim': latent_dims,
+        'optim': optimizer_str,
+        'criterionbeta': criterion_beta,
+        'transforms': transforms,
+        'res': resolution
+    }
+    print(hyperparams)
+
+
+    model = ConvCVAE(1, 1, latent_dims, best_lstm_model)
+    model = model.to(device)
+    model_name = generate_model_name(model.__class__.__name__, model_run_date, **hyperparams)
+    model.name = model_name
+
+    # Set up dataloaders
+    validation_batch_size = 16
+    test_batch_size = 8
+
+    if transforms:
+        train_dataloader = get_dataloader("training_labels_path", resolution=resolution, preceding_rainfall_days=best_lstm_model.preceding_rainfall_days, forecast_rainfall_days=1, 
+                                        transform=train_transform, batch_size=train_batch_size, shuffle=True, num_workers=4)
+    else:
+        train_dataloader = get_dataloader("training_labels_path", resolution=resolution, preceding_rainfall_days=best_lstm_model.preceding_rainfall_days, forecast_rainfall_days=1, 
+                                        transform=None, batch_size=train_batch_size, shuffle=True, num_workers=4)
+        
+    val_dataloader = get_dataloader("validation_labels_path", resolution=resolution, preceding_rainfall_days=best_lstm_model.preceding_rainfall_days, forecast_rainfall_days=1, 
+                                    transform=None, batch_size=validation_batch_size, shuffle=False, num_workers=4)
+    # test_dataloader = get_dataloader("test_labels_path", resolution=resolution, preceding_rainfall_days=preceding_rainfall_days, forecast_rainfall_days=1, 
+    #                                 transform=None, batch_size=test_batch_size, shuffle=False, num_workers=4)
+
+
+    # Train the model
+    model, end_epoch = train_model_vae(os.environ['PROJECT_FLOOD_DATA'], model, optimizer_str, learning_rate, num_epochs, criterion_beta, device, True, True, train_dataloader, val_dataloader)
+
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    days = elapsed_time // (24 * 3600)
+    hours = (elapsed_time % (24 * 3600)) // 3600
+    minutes = (elapsed_time % 3600) // 60
+    seconds = elapsed_time % 60
+    print(f"{int(days)}-{int(hours):02}:{int(minutes):02}:{int(seconds):02}")
+    print("\n\n")
+    
