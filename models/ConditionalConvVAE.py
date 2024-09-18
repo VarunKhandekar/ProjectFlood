@@ -106,7 +106,9 @@ class ConvCVAE(nn.Module):
         print(z.shape)
         h = self.fc_decode(z)
         h = h.view(h.size(0), 256, 16, 16)  # Reshape to feature maps
-        return self.decoder_conv(h)
+        reconstructed = self.decoder_conv(h)
+        reconstructed = reconstructed.squeeze(dim=1) # drop channel dimension as it is 1
+        return reconstructed
     
     # Forward pass through the model
     def forward(self, x, condition_sequence):
