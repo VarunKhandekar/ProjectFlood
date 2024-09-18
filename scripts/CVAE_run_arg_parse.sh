@@ -2,8 +2,8 @@
 #SBATCH --gres=gpu:1
 #SBATCH --mail-type=ALL # required to send email notifcations
 #SBATCH --mail-user=vk223
-#SBATCH --partition gpgpuC --gres=gpu:1
-#SBATCH --output=convLSTM_separate_branches_%j.out
+#SBATCH --partition gpgpu --gres=gpu:1
+#SBATCH --output=CVAE_%j.out
 
 export PROJECT_FLOOD_DATA="/homes/vk223/ProjectFlood/static/imperial_data_paths.json"
 export PROJECT_FLOOD_CORE_PATHS="/homes/vk223/ProjectFlood/static/imperial_core_paths.json"
@@ -38,27 +38,25 @@ TRANSFORMS=('False')
 for num_epochs in "${NUM_EPOCHS[@]}"; do
   for train_batch_size in "${TRAIN_BATCH_SIZES[@]}"; do
     for learning_rate in "${LEARNING_RATES[@]}"; do
-      for preceding_rainfall_days in "${PRECEDING_RAINFALL_DAYS[@]}"; do
-        for dropout_prob in "${DROPOUT_PROBS[@]}"; do
-          for latent_dims in "${LATENT_DIMENSIONS[@]}"; do
-            for optimizer_str in "${OPTIMIZERS[@]}"; do
-              for criterion_beta in "${CRITERION_BETAS[@]}"; do
-                for resolution in "${RESOLUTIONS[@]}"; do
-                  for transforms in "${TRANSFORMS[@]}"; do
-                    
-                    echo -e "\n\n\n"
-                    python3 $PROJECT_FLOOD_SCRIPTLOC \
-                        --num_epochs $num_epochs \
-                        --train_batch_size $train_batch_size \
-                        --learning_rate $learning_rate \
-                        --dropout_prob $dropout_prob \
-                        --latent_dims $latent_dims \
-                        --optimizer_str $optimizer_str \
-                        --criterion_beta $criterion_beta \
-                        --resolution $resolution \
-                        --transforms $transforms
+      for dropout_prob in "${DROPOUT_PROBS[@]}"; do
+        for latent_dims in "${LATENT_DIMENSIONS[@]}"; do
+          for optimizer_str in "${OPTIMIZERS[@]}"; do
+            for criterion_beta in "${CRITERION_BETAS[@]}"; do
+              for resolution in "${RESOLUTIONS[@]}"; do
+                for transforms in "${TRANSFORMS[@]}"; do
+                  
+                  echo -e "\n\n\n"
+                  python3 $PROJECT_FLOOD_SCRIPTLOC \
+                      --num_epochs $num_epochs \
+                      --train_batch_size $train_batch_size \
+                      --learning_rate $learning_rate \
+                      --dropout_prob $dropout_prob \
+                      --latent_dims $latent_dims \
+                      --optimizer_str $optimizer_str \
+                      --criterion_beta $criterion_beta \
+                      --resolution $resolution \
+                      --transforms $transforms
 
-                  done
                 done
               done
             done
