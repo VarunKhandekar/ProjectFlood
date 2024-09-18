@@ -32,20 +32,20 @@ class ConvCVAE(nn.Module):
 
             nn.Conv2d(128, 256, kernel_size=3, stride=2, padding=1),  # Output: 256 x 16 x 16
             nn.BatchNorm2d(256),
-            # nn.ReLU(),
-            nn.Tanh(),
-            # nn.Dropout(p=self.dropout_prob),
+            nn.ReLU(),
+            # nn.Tanh(),
+            nn.Dropout(p=self.dropout_prob),
 
-            # nn.Flatten(),
-            # nn.Linear(256 * 16 * 16, 256),
-            # # nn.ReLU(),
-            # nn.Tanh()
+            nn.Flatten(),
+            nn.Linear(256 * 16 * 16, 256),
+            # nn.ReLU(),
+            nn.Tanh()
         )
 
-        # self.fc_mu = nn.Linear(256, latent_dim)
-        # self.fc_logvar = nn.Linear(256, latent_dim)
-        self.fc_mu = nn.Linear(256 * 16 * 16, latent_dim)
-        self.fc_logvar = nn.Linear(256 * 16 * 16, latent_dim)
+        self.fc_mu = nn.Linear(256, latent_dim)
+        self.fc_logvar = nn.Linear(256, latent_dim)
+        # self.fc_mu = nn.Linear(256 * 16 * 16, latent_dim)
+        # self.fc_logvar = nn.Linear(256 * 16 * 16, latent_dim)
         # self.fc_mu = nn.Linear(2048 * 2 * 2, latent_dim)  # Flatten to latent space
         # self.fc_logvar = nn.Linear(2048 * 2 * 2, latent_dim)
 
@@ -163,35 +163,35 @@ class ConvCVAE(nn.Module):
         # print(h.shape)
         assert not torch.isnan(h).any(), "NaN detected after fc_decode"
 
-        # Check weights
-        first_conv_layer = self.decoder_conv[0]
-        weights = first_conv_layer.weight.data
-        biases = first_conv_layer.bias.data if first_conv_layer.bias is not None else None
+        # # Check weights
+        # first_conv_layer = self.decoder_conv[0]
+        # weights = first_conv_layer.weight.data
+        # biases = first_conv_layer.bias.data if first_conv_layer.bias is not None else None
 
-        # Check for NaNs or Infs in weights
-        assert not torch.isnan(weights).any(), "Weights of the first convolutional layer contain NaNs"
-        assert not torch.isinf(weights).any(), "Weights of the first convolutional layer contain Infs"
+        # # Check for NaNs or Infs in weights
+        # assert not torch.isnan(weights).any(), "Weights of the first convolutional layer contain NaNs"
+        # assert not torch.isinf(weights).any(), "Weights of the first convolutional layer contain Infs"
 
-        # Check for NaNs or Infs in biases
-        if biases is not None:
-            assert not torch.isnan(biases).any(), "Biases of the first convolutional layer contain NaNs"
-            assert not torch.isinf(biases).any(), "Biases of the first convolutional layer contain Infs"
+        # # Check for NaNs or Infs in biases
+        # if biases is not None:
+        #     assert not torch.isnan(biases).any(), "Biases of the first convolutional layer contain NaNs"
+        #     assert not torch.isinf(biases).any(), "Biases of the first convolutional layer contain Infs"
 
-        for idx, layer in enumerate(self.decoder_conv):
-            h = layer(h)
-            if torch.isnan(h).any():
-                print(f"NaN detected after layer {idx}: {layer}")
-                break
-            elif torch.isinf(h).any():
-                print(f"Inf detected after layer {idx}: {layer}")
-                break
-            else:
-                print(f"Layer {idx}: {layer}, output min: {h.min().item()}, max: {h.max().item()}")
-        assert not torch.isnan(h).any(), f"NaN detected in h, {h}"
-        reconstructed = h
+        # for idx, layer in enumerate(self.decoder_conv):
+        #     h = layer(h)
+        #     if torch.isnan(h).any():
+        #         print(f"NaN detected after layer {idx}: {layer}")
+        #         break
+        #     elif torch.isinf(h).any():
+        #         print(f"Inf detected after layer {idx}: {layer}")
+        #         break
+        #     else:
+        #         print(f"Layer {idx}: {layer}, output min: {h.min().item()}, max: {h.max().item()}")
+        # assert not torch.isnan(h).any(), f"NaN detected in h, {h}"
+        # reconstructed = h
 
 
-        # reconstructed = self.decoder_conv(h)
+        reconstructed = self.decoder_conv(h)
         reconstructed = reconstructed.squeeze(dim=1) # drop channel dimension as it is 1
         return reconstructed
     

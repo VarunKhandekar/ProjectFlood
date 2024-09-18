@@ -25,10 +25,10 @@ echo -e "\n*********************************************************************
 python3 -V
 
 NUM_EPOCHS=(1000)
-TRAIN_BATCH_SIZES=(32)
+TRAIN_BATCH_SIZES=(16 32)
 LEARNING_RATES=(0.001)
 DROPOUT_PROBS=(0.25)
-LATENT_DIMENSIONS=(16)
+LATENT_DIMENSIONS=(8 16)
 OPTIMIZERS=('RMSprop')
 CRITERION_BETAS=(1)
 RESOLUTIONS=(256)

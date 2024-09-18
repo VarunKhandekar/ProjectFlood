@@ -74,7 +74,7 @@ def train_model_vae(data_config_path: str, model: torch.nn.Module, optimizer_typ
         data_config = json.load(data_config_file)
 
     optimizer = getattr(optim, optimizer_type)(model.parameters(), lr=lr)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=50, min_lr=0.0001, threshold=0.0001, threshold_mode='rel')
+    # scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=50, min_lr=0.0001, threshold=0.0001, threshold_mode='rel')
     # criterion = getattr(nn, criterion_type)() #Default for BCELogitsLoss is mean reduction over the batch in question
 
     model = model.to(device)
@@ -82,10 +82,10 @@ def train_model_vae(data_config_path: str, model: torch.nn.Module, optimizer_typ
     validation_losses = []
     epochs = []
 
-    best_epoch = 0
-    best_val_loss = np.inf
-    early_stopping_patience = 75  # Stop training if no improvement after 50 epochs
-    epochs_no_improve = 0
+    # best_epoch = 0
+    # best_val_loss = np.inf
+    # early_stopping_patience = 75  # Stop training if no improvement after 50 epochs
+    # epochs_no_improve = 0
     for epoch in range(1, num_epochs+1):
         # TRAINING
         model.train()
@@ -121,28 +121,28 @@ def train_model_vae(data_config_path: str, model: torch.nn.Module, optimizer_typ
         # COLLECT VALIDATION LOSSES
         if val_dataloader: # Check if we even want validation losses
             validation_epoch_average_loss = validate_model_vae(model, val_dataloader, criterion_beta, device)
-            scheduler.step(validation_epoch_average_loss)
+            # scheduler.step(validation_epoch_average_loss)
             validation_losses.append(validation_epoch_average_loss)
-            if validation_epoch_average_loss < best_val_loss:
-                best_epoch = epoch
-                best_val_loss = validation_epoch_average_loss
-                epochs_no_improve = 0
-            else:
-                epochs_no_improve += 1
+        #     if validation_epoch_average_loss < best_val_loss:
+        #         best_epoch = epoch
+        #         best_val_loss = validation_epoch_average_loss
+        #         epochs_no_improve = 0
+        #     else:
+        #         epochs_no_improve += 1
             
-            if epochs_no_improve >= early_stopping_patience:
-                print("Final LR:", optimizer.param_groups[0]['lr'])
-                save_checkpoint(model, optimizer, epoch, os.path.join(data_config["saved_models_path"], f"{model.name}_{epoch}_earlystop.pt"), hyperparams)
-                print(f'Early stopping triggered after {epoch} epochs')
-                print("Best epoch:", best_epoch, "; Lowest validation loss:", best_val_loss)
-                break
+        #     if epochs_no_improve >= early_stopping_patience:
+        #         print("Final LR:", optimizer.param_groups[0]['lr'])
+        #         save_checkpoint(model, optimizer, epoch, os.path.join(data_config["saved_models_path"], f"{model.name}_{epoch}_earlystop.pt"), hyperparams)
+        #         print(f'Early stopping triggered after {epoch} epochs')
+        #         print("Best epoch:", best_epoch, "; Lowest validation loss:", best_val_loss)
+        #         break
 
-            if epoch % 100 == 0:
-                print(f"Epoch {epoch}/{num_epochs}, Loss: {loss.item():.4f}, Val Loss: {validation_epoch_average_loss:.4f}, LR: {optimizer.param_groups[0]['lr']}")
+        #     if epoch % 100 == 0:
+        #         print(f"Epoch {epoch}/{num_epochs}, Loss: {loss.item():.4f}, Val Loss: {validation_epoch_average_loss:.4f}, LR: {optimizer.param_groups[0]['lr']}")
 
-        # Save model snapshot
-        if epoch % 1000 == 0:
-            save_checkpoint(model, optimizer, epoch, os.path.join(data_config["saved_models_path"], f"{model.name}_{epoch}.pt"), hyperparams)
+        # # Save model snapshot
+        # if epoch % 1000 == 0:
+        #     save_checkpoint(model, optimizer, epoch, os.path.join(data_config["saved_models_path"], f"{model.name}_{epoch}.pt"), hyperparams)
     
     # Save end model
     print("Final LR:", optimizer.param_groups[0]['lr'])
