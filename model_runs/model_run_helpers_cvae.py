@@ -11,12 +11,23 @@ from visualisations.visualisation_helpers import *
 # Loss function: Reconstruction loss + KL Divergence
 def KLReconstruction_loss_function(recon_x, x, mu, logvar, beta=1.0):
     # Reconstruction loss (binary cross-entropy)
-    BCE = torch.nn.functional.binary_cross_entropy(recon_x, x, reduction='sum')
+    BCE = torch.nn.functional.binary_cross_entropy(recon_x, x, reduction='mean')
     
     # KL Divergence: D_KL(Q(z|x) || P(z))
-    KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+    # KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+    KLD_element = -0.5 * (1 + logvar - mu.pow(2) - logvar.exp())  # Shape: [batch_size, latent_dim]
+    KLD_per_sample = torch.sum(KLD_element, dim=1)  # Sum over latent dimensions, resulting in [batch_size]
+    KLD = torch.mean(KLD_per_sample)  # Average over batch size
+
+    print(f"BCE: {BCE.item()}, KLD: {KLD.item()}")
     
     return BCE + beta*KLD
+
+
+def weights_init(m):
+    if isinstance(m, nn.Linear):
+        nn.init.xavier_uniform_(m.weight)
+        nn.init.zeros_(m.bias)
 
 
 def train_model_vae(data_config_path: str, model: torch.nn.Module, optimizer_type: str, lr: float, num_epochs: int, criterion_beta:int, device: torch.device, 
@@ -84,8 +95,17 @@ def train_model_vae(data_config_path: str, model: torch.nn.Module, optimizer_typ
             inputs, labels = inputs.to(device, dtype=torch.float32), labels.to(device, dtype=torch.float32)
             reconstructed, mu, logvar = model(labels, inputs)            
             loss = KLReconstruction_loss_function(reconstructed, labels, mu, logvar, criterion_beta)
+            print(f"Loss value: {loss.item()}")
+            assert not torch.isnan(loss), "Loss contains NaNs"
             optimizer.zero_grad()
             loss.backward()
+
+            gradients = model.encoder_conv[0].weight.grad
+            if torch.isnan(gradients).any():
+                print("Gradients of the first convolutional layer contain NaNs")
+            else:
+                print("Gradients of the first convolutional layer are valid")
+
             optimizer.step()
             # last_outputs, last_labels = torch.sigmoid(outputs), labels # apply sigmoid for charting purposes
 

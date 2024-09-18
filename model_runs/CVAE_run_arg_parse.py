@@ -84,6 +84,7 @@ if __name__ == "__main__":
     model = model.to(device)
     model_name = generate_model_name(model.__class__.__name__, model_run_date, **hyperparams)
     model.name = model_name
+    # model.apply(weights_init) # Xavier init for linear layers
 
     # Set up dataloaders
     validation_batch_size = 16
