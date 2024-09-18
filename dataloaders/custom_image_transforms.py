@@ -1,5 +1,5 @@
 import random
-import torchvision.transforms.v2.functional as F
+import torchvision.transforms.v2.functional
 
 class RandomHorizontalFlip(object):
     '''
@@ -8,9 +8,9 @@ class RandomHorizontalFlip(object):
     def __call__(self, images, label):
         transformed_images = {}
         if random.random() > 0.5:
-            transformed_label = F.horizontal_flip(label)
+            transformed_label = torchvision.transforms.v2.functional.horizontal_flip(label)
             for key, value in images.items():
-                edited_images = [F.horizontal_flip(image) for image in value]
+                edited_images = [torchvision.transforms.v2.functional.horizontal_flip(image) for image in value]
                 transformed_images[key] = edited_images
             return transformed_images, transformed_label
         return images, label      
@@ -23,9 +23,9 @@ class RandomVerticalFlip(object):
     def __call__(self, images, label):
         transformed_images = {}
         if random.random() > 0.5:
-            transformed_label = F.vertical_flip(label)
+            transformed_label = torchvision.transforms.v2.functional.vertical_flip(label)
             for key, value in images.items():
-                edited_images = [F.horizontal_flip(image) for image in value]
+                edited_images = [torchvision.transforms.v2.functional.horizontal_flip(image) for image in value]
                 transformed_images[key] = edited_images
             return transformed_images, transformed_label
         return images, label
@@ -41,10 +41,10 @@ class RandomRotation(object):
 
     def __call__(self, images, label):
         angle = random.randrange(-self.degrees, self.degrees, 90)
-        transformed_label = F.rotate(label, angle)
+        transformed_label = torchvision.transforms.v2.functional.rotate(label, angle)
         transformed_images = {}
         for key, value in images.items():
-            edited_images = [F.rotate(image, angle) for image in value]
+            edited_images = [torchvision.transforms.v2.functional.rotate(image, angle) for image in value]
             transformed_images[key] = edited_images
         return transformed_images, transformed_label
 
