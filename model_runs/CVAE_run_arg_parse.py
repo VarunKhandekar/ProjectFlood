@@ -80,7 +80,7 @@ if __name__ == "__main__":
     print(hyperparams)
 
 
-    model = ConvCVAE(1, 1, latent_dims, best_lstm_model)
+    model = ConvCVAE(1, 1, latent_dims, best_lstm_model, dropout_prob)
     model = model.to(device)
     model_name = generate_model_name(model.__class__.__name__, model_run_date, **hyperparams)
     model.name = model_name

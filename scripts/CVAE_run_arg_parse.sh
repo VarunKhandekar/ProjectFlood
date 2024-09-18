@@ -24,7 +24,7 @@ echo -e "\n*********************************************************************
 /usr/bin/nvidia-smi
 python3 -V
 
-NUM_EPOCHS=(5000)
+NUM_EPOCHS=(1000)
 TRAIN_BATCH_SIZES=(32)
 LEARNING_RATES=(0.001)
 DROPOUT_PROBS=(0.25)

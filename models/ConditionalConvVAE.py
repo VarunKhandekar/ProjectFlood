@@ -2,22 +2,34 @@ import torch
 import torch.nn as nn
 
 class ConvCVAE(nn.Module):
-    def __init__(self, img_channels, condition_channels, latent_dim, LSTM_model):
+    def __init__(self, img_channels, condition_channels, latent_dim, LSTM_model, dropout_prob):
         super(ConvCVAE, self).__init__()
 
         self.LSTM_model = LSTM_model
         self.preceding_rainfall_days = LSTM_model.preceding_rainfall_days
         self.forecast_rainfall_days = LSTM_model.forecast_rainfall_days
+        self.dropout_prob = dropout_prob
+        self.latent_dims = latent_dim
         
         # Encoder: Convolutional layers to downsample the image
         self.encoder_conv = nn.Sequential(
             nn.Conv2d(img_channels + condition_channels, 32, kernel_size=3, stride=2, padding=1),  # Output: 32 x 128 x 128
+            nn.BatchNorm2d(32),
             nn.ReLU(),
+            nn.Dropout(p=self.dropout_prob),
+
             nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1),  # Output: 64 x 64 x 64
+            nn.BatchNorm2d(64),  
             nn.ReLU(),
+            nn.Dropout(p=self.dropout_prob),
+
             nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1),  # Output: 128 x 32 x 32
+            nn.BatchNorm2d(128),
             nn.ReLU(),
-            nn.Conv2d(128, 256, kernel_size=3, stride=2, padding=1)  # Output: 256 x 16 x 16
+            nn.Dropout(p=self.dropout_prob),
+
+            nn.Conv2d(128, 256, kernel_size=3, stride=2, padding=1),  # Output: 256 x 16 x 16
+            nn.BatchNorm2d(256)
         )
         self.fc_mu = nn.Linear(256 * 16 * 16, latent_dim)
         self.fc_logvar = nn.Linear(256 * 16 * 16, latent_dim)
@@ -42,13 +54,22 @@ class ConvCVAE(nn.Module):
         self.fc_decode = nn.Linear(latent_dim + (condition_channels*16*16), 256 * 16 * 16)
         self.decoder_conv = nn.Sequential(
             nn.ConvTranspose2d(256, 128, kernel_size=3, stride=2, padding=1, output_padding=1),  # Output: 128 x 32 x 32
+            nn.BatchNorm2d(128), 
             nn.ReLU(),
+            nn.Dropout(p=self.dropout_prob), 
+
             nn.ConvTranspose2d(128, 64, kernel_size=3, stride=2, padding=1, output_padding=1),  # Output: 64 x 64 x 64
+            nn.BatchNorm2d(64),
             nn.ReLU(),
+            nn.Dropout(p=self.dropout_prob),
+
             nn.ConvTranspose2d(64, 32, kernel_size=3, stride=2, padding=1, output_padding=1),  # Output: 32 x 128 x 128
+            nn.BatchNorm2d(32),
             nn.ReLU(),
+            nn.Dropout(p=self.dropout_prob),
+
             nn.ConvTranspose2d(32, img_channels, kernel_size=3, stride=2, padding=1, output_padding=1),  # Output: img_channels x 256 x 256
-            nn.Sigmoid()  # Normalize pixel values between 0 and 1
+            nn.Sigmoid()
         )
     
     # Encoder: Takes in the image and condition, returns latent mean and log variance
