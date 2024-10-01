@@ -6,7 +6,7 @@ from model_runs.model_run_helpers import *
 from visualisations.visualisation_helpers import *
 
 
-def train_model(data_config_path: str, model: torch.nn.Module, criterion_type: str, optimizer_type: str, lr: float, num_epochs: int, device: torch.device, 
+def train_model_UNet(data_config_path: str, model: torch.nn.Module, criterion_type: str, optimizer_type: str, lr: float, num_epochs: int, device: torch.device, 
                 plot_training_images: bool, plot_losses: bool, 
                 train_dataloader: torch.utils.data.DataLoader, val_dataloader: torch.utils.data.DataLoader = None, 
                 is_final: bool = False) -> tuple:

@@ -6,7 +6,7 @@ import time
 from dataloaders.convLSTM_dataset import *
 from dataloaders.custom_image_transforms import *
 from models.UNet import *
-from model_runs.model_run_helpers import *
+# from model_runs.model_run_helpers import *
 from model_runs.model_run_helpers_unet import *
 
 
@@ -92,7 +92,7 @@ if __name__ == "__main__":
 
 
     # Train the model
-    model, end_epoch = train_model(os.environ['PROJECT_FLOOD_DATA'], model, criterion_str, optimizer_str, learning_rate, num_epochs, device, True, True, train_dataloader, val_dataloader)
+    model, end_epoch = train_model_UNet(os.environ['PROJECT_FLOOD_DATA'], model, criterion_str, optimizer_str, learning_rate, num_epochs, device, True, True, train_dataloader, val_dataloader)
 
     end_time = time.time()
     elapsed_time = end_time - start_time
