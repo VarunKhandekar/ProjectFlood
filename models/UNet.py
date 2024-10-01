@@ -64,7 +64,7 @@ class UNet(nn.Module):
         # Final layer to get the desired number of output channels (e.g. number of classes)
         self.finalconv = nn.Sequential(
             nn.Conv2d(base_channels, 1, kernel_size=1),
-            nn.Sigmoid
+            nn.Sigmoid()
         )
 
     def forward(self, x):
