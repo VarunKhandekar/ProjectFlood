@@ -84,6 +84,7 @@ class UNet(nn.Module):
 
         # Final convolution layer
         x = self.finalconv(x)
+        x = x.squeeze(dim=1)
 
         return x
 
